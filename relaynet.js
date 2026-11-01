@@ -2,11 +2,13 @@
   if (!window.mqtt?.connect) return;
 
   const RealPeer = window.Peer;
+  // Prefer a standard HTTPS/WSS port so mobile carriers and international
+  // networks are much less likely to block the relay connection.
   const BROKERS = [
-    'wss://broker.emqx.io:8084/mqtt',
-    'wss://test.mosquitto.org:8081'
+    'wss://mqtt.eclipseprojects.io:443/mqtt',
+    'wss://broker.emqx.io:8084/mqtt'
   ];
-  const PREFIX = 'mcr-global-r12-7f31';
+  const PREFIX = 'mcr-global-r14-443-5c21';
 
   const uid = (n=10) => {
     const a='abcdefghijklmnopqrstuvwxyz0123456789';
@@ -37,6 +39,7 @@
       this.failHandlers=[];
       this.connectedCount=0;
       this.initialSettled=0;
+      this.primaryReady=false;
 
       BROKERS.forEach((url,index)=>{
         let everConnected=false;
@@ -44,24 +47,28 @@
         const client=mqtt.connect(url,{
           clientId:`mcr_${uid(14)}_${index}`,
           clean:true,
-          reconnectPeriod:1400,
-          connectTimeout:5500,
+          reconnectPeriod:1200,
+          connectTimeout:index===0?7000:5500,
           keepalive:20,
-          protocolVersion:4
+          protocolVersion:4,
+          resubscribe:true
         });
+        client.__mcrIndex=index;
         this.clients.push(client);
 
         client.on('connect',()=>{
           if(!everConnected){ everConnected=true; this.initialSettled++; }
+          if(index===0) this.primaryReady=true;
           this.connectedCount=this.clients.filter(c=>c.connected).length;
-          this.subs.forEach((_,topic)=>client.subscribe(topic,{qos:0}));
+          this.subs.forEach((_,topic)=>client.subscribe(topic,{qos:1}));
           if(!this.ready){
             this.ready=true;
             this.readyHandlers.splice(0).forEach(fn=>{try{fn()}catch(_){}});
           }
+          this._paintStatus();
         });
-        client.on('offline',()=>{ this.connectedCount=this.clients.filter(c=>c.connected).length; });
-        client.on('close',()=>{ this.connectedCount=this.clients.filter(c=>c.connected).length; });
+        client.on('offline',()=>{ this.connectedCount=this.clients.filter(c=>c.connected).length; this._paintStatus(); });
+        client.on('close',()=>{ this.connectedCount=this.clients.filter(c=>c.connected).length; this._paintStatus(); });
         client.on('error',()=>{
           if(!everConnected&&!initialErrorCounted){
             initialErrorCounted=true;
@@ -75,22 +82,29 @@
       });
     }
 
+    _paintStatus(){
+      const s=document.querySelector('#status');
+      if(!s) return;
+      if(this.primaryReady && /Ready|Creating|Connecting|Global relay/.test(s.textContent||'')) s.textContent='Global relay · WSS 443 online';
+    }
+
     onReady(fn){ if(this.ready) setTimeout(fn,0); else this.readyHandlers.push(fn); }
     onFail(fn){ this.failHandlers.push(fn); }
 
     subscribe(topic,fn){
       if(!this.subs.has(topic)) this.subs.set(topic,[]);
       this.subs.get(topic).push(fn);
-      this.clients.forEach(c=>{ if(c.connected) c.subscribe(topic,{qos:0}); });
+      this.clients.forEach(c=>{ if(c.connected) c.subscribe(topic,{qos:1}); });
     }
 
-    publish(topic,payload){
+    publish(topic,payload,qos=0){
       const packet=JSON.stringify({mid:`${Date.now().toString(36)}-${uid(8)}`,payload});
       let sent=0;
-      this.clients.forEach(c=>{
-        if(c.connected){
-          try{ c.publish(topic,packet,{qos:0,retain:false}); sent++; }catch(_){ }
-        }
+      // Prefer the port-443 broker. Also mirror to any other connected broker
+      // so both peers still have a common path if possible.
+      const connected=this.clients.filter(c=>c.connected).sort((a,b)=>(a.__mcrIndex||0)-(b.__mcrIndex||0));
+      connected.forEach(c=>{
+        try{ c.publish(topic,packet,{qos,retain:false}); sent++; }catch(_){ }
       });
       return sent>0;
     }
@@ -101,7 +115,7 @@
       if(!msg?.mid) return;
       if(this.seen.has(msg.mid)) return;
       this.seen.add(msg.mid);
-      if(this.seen.size>1800) this.seen.clear();
+      if(this.seen.size>2500) this.seen.clear();
       (this.subs.get(topic)||[]).slice().forEach(fn=>{ try{fn(msg.payload)}catch(e){console.error(e);} });
     }
 
@@ -153,11 +167,12 @@
       if(!this.open){ this._queue.push(data); return; }
       if(this.role==='host'&&data?.type==='world'){
         const now=performance.now();
-        if(now-this._lastWorld<85) return;
+        if(now-this._lastWorld<90) return;
         this._lastWorld=now;
       }
       const topic=this.role==='host'?this._topic('to'):this._topic('from');
-      this.owner._bridge.publish(topic,{sys:'data',data});
+      const unreliable=data?.type==='world'||data?.type==='input';
+      this.owner._bridge.publish(topic,{sys:'data',data},unreliable?0:1);
     }
 
     _receive(packet){
@@ -170,7 +185,7 @@
     close(){
       if(this._closed) return;
       const topic=this.role==='host'?this._topic('to'):this._topic('from');
-      this.owner._bridge.publish(topic,{sys:'close'});
+      this.owner._bridge.publish(topic,{sys:'close'},1);
       this._closeLocal();
     }
 
@@ -201,8 +216,6 @@
       this._bridge.onReady(()=>{
         if(this.destroyed) return;
         this._opened=true;
-        const s=document.querySelector('#status');
-        if(s&&/Creating room|Connecting|Ready/.test(s.textContent||'')) s.textContent='Global relay connected';
         this._emit('open',this.id);
       });
       this._bridge.onFail(()=>{
@@ -238,7 +251,7 @@
           this._bridge.subscribe(`${PREFIX}/${room}/from/${guestId}`,p=>conn._receive(p));
           this._deliverConnection(conn);
         }
-        setTimeout(()=>this._bridge.publish(`${PREFIX}/${room}/to/${guestId}`,{sys:'open'}),60);
+        setTimeout(()=>this._bridge.publish(`${PREFIX}/${room}/to/${guestId}`,{sys:'open'},1),80);
       });
     }
 
@@ -254,20 +267,20 @@
       const announce=()=>{
         if(this.destroyed||conn.open||conn._closed) return;
         attempts++;
-        this._bridge.publish(`${PREFIX}/${room}/join`,{guestId});
+        this._bridge.publish(`${PREFIX}/${room}/join`,{guestId},1);
         const s=document.querySelector('#status');
-        if(s&&!conn.open) s.textContent=`Connecting globally… ${Math.min(attempts,9)}`;
+        if(s&&!conn.open) s.textContent=`Connecting globally on 443… ${Math.min(attempts,12)}`;
       };
       this._bridge.onReady(()=>{
         announce();
         const timer=setInterval(()=>{
           if(conn.open||conn._closed||this.destroyed){ clearInterval(timer); return; }
           announce();
-          if(attempts>=12){
+          if(attempts>=15){
             clearInterval(timer);
             conn._emit('error',new Error('Global relay room handshake timed out.'));
           }
-        },900);
+        },1000);
       });
       return conn;
     }
@@ -279,15 +292,15 @@
       this.destroyed=true;
       this._connections.forEach(c=>{try{c.close();}catch(_){}});
       this._connections.clear();
-      this._pendingConnections=[];
       this._bridge.close();
     }
   }
 
   window.Peer=RelayPeer;
   window.MidnightNetwork={
-    build:'global-relay-r12',
-    transport:'mqtt-over-secure-websocket',
+    build:'global-relay-r14-443',
+    transport:'mqtt-over-wss',
+    primaryBroker:'mqtt.eclipseprojects.io:443/mqtt',
     brokers:BROKERS,
     note:'Public relay transport; do not send sensitive information.'
   };
