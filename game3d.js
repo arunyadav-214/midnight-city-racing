@@ -7,6 +7,7 @@
 
   let peer = null;
   let isHost = false;
+  let soloMode = false;
   let myName = '';
   let room = '';
   let myId = '';
@@ -49,7 +50,7 @@
   }
 
   function broadcast(msg){
-    if(!isHost) return;
+    if(!isHost || soloMode) return;
     conns.forEach(c => { if(c.open) c.send(msg); });
   }
 
@@ -62,7 +63,7 @@
     conns.forEach(c=>{try{c.close()}catch{}});
     try{ peer && peer.destroy(); }catch{}
     peer=null; conn=null; conns=new Map(); guestInputs=new Map(); world=null;
-    ready=false; finished=false;
+    ready=false; finished=false; soloMode=false;
     input={up:false,down:false,left:false,right:false};
     MidnightSound.stop();
   }
@@ -72,14 +73,17 @@
     status('Ready'); error(); show('home');
   }
 
-  $('#hostTab').onclick=()=>{
-    $('#hostTab').classList.add('active'); $('#joinTab').classList.remove('active');
-    $('#hostForm').classList.add('active'); $('#joinForm').classList.remove('active');
-  };
-  $('#joinTab').onclick=()=>{
-    $('#joinTab').classList.add('active'); $('#hostTab').classList.remove('active');
-    $('#joinForm').classList.add('active'); $('#hostForm').classList.remove('active');
-  };
+  function activateMode(mode){
+    ['host','join','bot'].forEach(m=>{
+      const tab=$('#'+m+'Tab'), form=$('#'+m+'Form');
+      if(tab) tab.classList.toggle('active',m===mode);
+      if(form) form.classList.toggle('active',m===mode);
+    });
+    error();
+  }
+  $('#hostTab').onclick=()=>activateMode('host');
+  $('#joinTab').onclick=()=>activateMode('join');
+  $('#botTab').onclick=()=>activateMode('bot');
   ['hostCode','joinCode'].forEach(id=>$('#'+id).oninput=e=>e.target.value=code(e.target.value));
 
   $('#hostForm').onsubmit=e=>{
@@ -91,6 +95,13 @@
     if(!n || c.length<4) return error('Enter your name and the room code from your friend.');
     join(n,c);
   };
+  $('#botForm').onsubmit=e=>{
+    e.preventDefault();
+    const n=$('#botName').value.trim();
+    const count=Math.max(1,Math.min(5,Number($('#botCount').value)||1));
+    if(!n) return error('Enter your name to start the bot race.');
+    startBotMode(n,count);
+  };
 
   function nextId(){
     for(let i=2;i<=MAX_PLAYERS;i++) if(!world.players['p'+i] && !conns.has('p'+i)) return 'p'+i;
@@ -100,7 +111,7 @@
   function host(name,c){
     cleanup(); error();
     if(typeof Peer==='undefined') return error('Multiplayer could not load. Check your connection.');
-    isHost=true; myName=name; room=c; myId='p1'; world=newWorld(name);
+    isHost=true; soloMode=false; myName=name; room=c; myId='p1'; world=newWorld(name);
     status('Creating room…');
     peer=new Peer(peerId(c));
     peer.on('open',()=>{
@@ -111,6 +122,23 @@
       status('Connection error');
       error(e.type==='unavailable-id'?'That room code is already in use.':'Could not create the room. Try again.');
     });
+  }
+
+  function startBotMode(name,count){
+    cleanup(); error();
+    isHost=true; soloMode=true; myName=name; room='BOTS'; myId='p1'; world=newWorld(name);
+    world.players.p1.ready=true;
+    for(let i=0;i<count;i++){
+      const id='p'+(i+2);
+      const p=player(id,MidnightBots.name(i),i+1);
+      p.ready=true;
+      MidnightBots.reset(p,i);
+      world.players[id]=p;
+    }
+    $('#raceCode').textContent='BOTS';
+    status(`Solo race · ${count} bot${count===1?'':'s'}`);
+    MidnightSound.init();
+    startRace();
   }
 
   function wireIncomingGuest(c){
@@ -154,7 +182,7 @@
   function join(name,c){
     cleanup(); error();
     if(typeof Peer==='undefined') return error('Multiplayer could not load. Check your connection.');
-    isHost=false; myName=name; room=c; myId=''; world={phase:'lobby',players:{},winner:null};
+    isHost=false; soloMode=false; myName=name; room=c; myId=''; world={phase:'lobby',players:{},winner:null};
     status('Connecting…');
     peer=new Peer();
     peer.on('open',()=>{
@@ -223,8 +251,10 @@
   function resetCars(){
     const ps=connectedPlayers().sort((a,b)=>Number(a.id.slice(1))-Number(b.id.slice(1)));
     ps.forEach((p,i)=>{
+      const wasBot=!!p.bot, botIndex=p.botIndex;
       const fresh=player(p.id,p.name,i);
       fresh.ready=true;
+      if(wasBot) MidnightBots.reset(fresh,botIndex);
       Object.assign(p,fresh);
     });
     world.phase='count'; world.winner=null; finished=false;
@@ -255,7 +285,7 @@
       if(!world || world.phase!=='race' || finished) return;
       const now=performance.now(),dt=Math.min(.04,(now-last)/1000); last=now;
       Object.values(world.players).forEach(p=>{
-        const keys=p.id==='p1'?input:(guestInputs.get(p.id)||{});
+        const keys=p.id==='p1'?input:(p.bot?MidnightBots.input(p):(guestInputs.get(p.id)||{}));
         drive(p,keys,dt); lapCheck(p);
       });
       winnerCheck(); push+=dt;
@@ -268,8 +298,9 @@
 
   function drive(c,k,dt){
     if(c.done) return;
-    const road=onRoad(c.x,c.y), ac=k.up?(road?300:150):k.down?-190:0;
-    c.v+=ac*dt; c.v*=Math.pow(road?.987:.955,dt*60); c.v=Math.max(-105,Math.min(345,c.v));
+    const road=onRoad(c.x,c.y), botFactor=c.bot?MidnightBots.speedFactor(c):1;
+    const ac=k.up?(road?300*botFactor:150*botFactor):k.down?-190:0;
+    c.v+=ac*dt; c.v*=Math.pow(road?.987:.955,dt*60); c.v=Math.max(-105,Math.min(345*botFactor,c.v));
     if(Math.abs(c.v)<.8)c.v=0;
     const turn=(k.left?-1:0)+(k.right?1:0),f=Math.min(1,Math.abs(c.v)/72);
     c.a+=turn*(road?2.1:1.4)*f*dt*(c.v>=0?1:-1);
@@ -323,18 +354,19 @@
     $('#speed').textContent=Math.round(Math.abs(me.v)*.68);
     $('#position').textContent=pos+' / '+ps.length;
     $('#youName').textContent=me.name;
-    $('#driverList').innerHTML=ranked.map((p,i)=>`<p><i style="background:${Midnight3D.colorFor(p.id)}"></i><span>${i+1}. ${esc(p.name)}</span></p>`).join('');
+    $('#driverList').innerHTML=ranked.map((p,i)=>`<p><i style="background:${Midnight3D.colorFor(p.id)}"></i><span>${i+1}. ${esc(p.name)}${p.bot?' 🤖':''}</span></p>`).join('');
   }
 
   function finish(w){
     clearInterval(hostLoop);hostLoop=null;stopRender();MidnightSound.stop();finished=true;show('finish');
     const winner=world?.players?.[w]; const win=w===myId;
     $('#finishTitle').textContent=win?'You won! 🏁':`${winner?.name||'A driver'} won!`;
-    $('#finishText').textContent=win?'You conquered the Midnight City street circuit.':'Race complete. Ready for a rematch?';
+    $('#finishText').textContent=win?'You conquered the Midnight City street circuit.':(winner?.bot?'A bot got there first. Rematch and beat it!':'Race complete. Ready for a rematch?');
   }
 
   $('#rematch').onclick=()=>{
     MidnightSound.init(); ready=true;
+    if(soloMode){ startRace(); return; }
     if(isHost){
       world.phase='lobby'; Object.values(world.players).forEach(p=>p.ready=p.id==='p1');
       broadcast({type:'back',world}); show('lobby'); updateLobby(); syncLobby();
@@ -348,7 +380,7 @@
 
   const keys={ArrowUp:'up',w:'up',W:'up',ArrowDown:'down',s:'down',S:'down',ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right'};
   const inputSend=()=>{if(!isHost)send({type:'input',value:input})};
-  addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();input[k]=true;inputSend()});
+  addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();input[k]=true;inputSend()});
   addEventListener('keyup',e=>{const k=keys[e.key];if(!k)return;e.preventDefault();input[k]=false;inputSend()});
   document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key,on=e=>{e.preventDefault();MidnightSound.init();input[k]=true;inputSend()},off=e=>{e.preventDefault();input[k]=false;inputSend()};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
 
