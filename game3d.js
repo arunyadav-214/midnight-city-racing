@@ -2,8 +2,9 @@
   const $ = s => document.querySelector(s);
   const views = ['home','lobby','race','finish'];
   const canvas = $('#canvas');
-  const TOTAL = 3;
   const MAX_PLAYERS = 6;
+  const START_X = 115;
+  const FINISH_X = 900;
 
   let peer = null;
   let isHost = false;
@@ -32,12 +33,12 @@
     for(let i=0;i<6;i++) s += chars[Math.floor(Math.random()*chars.length)];
     return s;
   };
-  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const error = (t='') => { const e=$('#error'); e.hidden=!t; e.textContent=t; };
 
   const startSlots = [
-    {x:430,y:510},{x:430,y:552},{x:430,y:594},
-    {x:480,y:510},{x:480,y:552},{x:480,y:594}
+    {x:START_X,y:225},{x:START_X,y:263},{x:START_X,y:301},
+    {x:START_X,y:349},{x:START_X,y:387},{x:START_X,y:425}
   ];
 
   function player(id,name,index=0){
@@ -136,7 +137,7 @@
       world.players[id]=p;
     }
     $('#raceCode').textContent='BOTS';
-    status(`Solo race · ${count} bot${count===1?'':'s'}`);
+    status(`Solo straight sprint · ${count} bot${count===1?'':'s'}`);
     MidnightSound.init();
     startRace();
   }
@@ -286,7 +287,7 @@
       const now=performance.now(),dt=Math.min(.04,(now-last)/1000); last=now;
       Object.values(world.players).forEach(p=>{
         const keys=p.id==='p1'?input:(p.bot?MidnightBots.input(p):(guestInputs.get(p.id)||{}));
-        drive(p,keys,dt); lapCheck(p);
+        drive(p,keys,dt); finishCheck(p);
       });
       winnerCheck(); push+=dt;
       if(push>.05){ push=0; broadcast({type:'world',world}); }
@@ -311,17 +312,17 @@
     }
   }
 
-  function lapCheck(c){
-    if(c.done)return;
-    const z=[c.x>760&&c.y>475,c.x>760&&c.y<260,c.x>475&&c.x<675&&c.y<260,c.x<360&&c.y>220&&c.y<405,c.x<360&&c.y>450];
-    if(c.cp<5&&z[c.cp])c.cp++;
-    if(c.cp===5&&c.x>500&&c.x<590&&c.y>475){
-      c.lap++;c.cp=0;
-      if(c.lap>=TOTAL){c.done=true;c.finish=Date.now();}
+  function finishCheck(c){
+    if(c.done) return;
+    if(c.x >= FINISH_X && c.y >= 205 && c.y <= 445){
+      c.done=true;
+      c.lap=1;
+      c.cp=1;
+      c.finish=Date.now();
     }
   }
 
-  const progress=c=>c.lap*6+c.cp;
+  const progress = c => c.done ? 10000 : c.x;
 
   function winnerCheck(){
     const done=Object.values(world.players).filter(p=>p.done);
@@ -350,7 +351,8 @@
     const ps=Object.values(world.players);
     const ranked=[...ps].sort((a,b)=>progress(b)-progress(a)||Math.abs(b.v)-Math.abs(a.v));
     const pos=Math.max(1,ranked.findIndex(p=>p.id===myId)+1);
-    $('#lap').textContent=Math.min(me.lap,TOTAL)+' / '+TOTAL;
+    const pct=Math.max(0,Math.min(100,Math.round(((me.x-START_X)/(FINISH_X-START_X))*100)));
+    $('#lap').textContent=(me.done?100:pct)+'%';
     $('#speed').textContent=Math.round(Math.abs(me.v)*.68);
     $('#position').textContent=pos+' / '+ps.length;
     $('#youName').textContent=me.name;
@@ -361,7 +363,7 @@
     clearInterval(hostLoop);hostLoop=null;stopRender();MidnightSound.stop();finished=true;show('finish');
     const winner=world?.players?.[w]; const win=w===myId;
     $('#finishTitle').textContent=win?'You won! 🏁':`${winner?.name||'A driver'} won!`;
-    $('#finishText').textContent=win?'You conquered the Midnight City street circuit.':(winner?.bot?'A bot got there first. Rematch and beat it!':'Race complete. Ready for a rematch?');
+    $('#finishText').textContent=win?'You were first across the straight sprint finish line.':(winner?.bot?'A bot reached the finish first. Rematch and beat it!':'Straight sprint complete. Ready for a rematch?');
   }
 
   $('#rematch').onclick=()=>{
