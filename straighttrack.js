@@ -2,21 +2,22 @@
   if (!window.Midnight3D?.track) return;
   const track = Midnight3D.track;
 
-  // One long, wide straight road from START to FINISH. No turns.
+  // About three minutes at full racing speed: one road, zero turns.
+  track.startX = 115;
+  track.finishX = 60000;
+  track.roadMinY = 205;
+  track.roadMaxY = 445;
+
   track.roads.splice(0, track.roads.length,
-    {x:60, y:205, w:880, h:240}
+    {x:60, y:205, w:60020, h:240}
   );
 
-  // Long lane guides across the straight.
-  track.marks.splice(0, track.marks.length,
-    [80,245,925,245],
-    [80,285,925,285],
-    [80,325,925,325],
-    [80,365,925,365],
-    [80,405,925,405]
-  );
+  // Lane guides are rendered efficiently by scene3d.js from these y positions.
+  track.laneYs = [245,285,325,365,405];
+  track.marks.splice(0, track.marks.length);
 
-  // Put the colorful buildings along the roadside, never on the track.
+  // Keep the named colorful buildings near the start; scene3d adds a repeating
+  // colorful city corridor farther down the highway.
   const positions = {
     MALL:    {x:70, y:35,  w:125, h:130},
     CLUB:    {x:235,y:35,  w:110, h:130},
