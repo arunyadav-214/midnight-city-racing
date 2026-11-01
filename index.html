@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <meta name="theme-color" content="#070b12">
+  <meta name="theme-color" content="#eef1f4">
   <title>Midnight City Racing · 3D Multiplayer Street Race</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="wrap">
     <header class="top">
-      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · 2-player online street racing</small></div></div>
+      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · 2–6 player online street racing</small></div></div>
       <span class="pill" id="status">Ready</span>
     </header>
 
@@ -19,8 +19,8 @@
         <div class="panel intro">
           <p class="eyebrow">REAL-TIME 3D MULTIPLAYER</p>
           <h1>Own the city streets.<br><span>First to 3 laps wins.</span></h1>
-          <p>Race your friend through an original cinematic nighttime city circuit with a 3D chase camera, street lighting, engine sound, skid effects, and live synchronized racing.</p>
-          <div class="chips"><span>3D chase camera</span><span>Room codes</span><span>Engine audio</span><span>Touch controls</span></div>
+          <p>Race with up to six players through a bright white 3D city circuit with wider streets, chase-camera driving, engine sound, skid effects, and synchronized online racing.</p>
+          <div class="chips"><span>Up to 6 players</span><span>Wide city roads</span><span>3D chase camera</span><span>Engine audio</span><span>Touch controls</span></div>
         </div>
         <div class="panel">
           <div class="tabs"><button id="hostTab" class="tab active" type="button">Host race</button><button id="joinTab" class="tab" type="button">Join friend</button></div>
@@ -41,16 +41,16 @@
 
     <section id="lobby" class="view">
       <div class="panel">
-        <div class="lobbyTop"><div><p class="eyebrow">RACE LOBBY</p><div class="code" id="roomCode">------</div></div><button id="leave" class="secondary" type="button">Leave</button></div>
+        <div class="lobbyTop"><div><p class="eyebrow">RACE LOBBY · DRIVERS <span id="playerCount">1 / 6</span></p><div class="code" id="roomCode">------</div></div><button id="leave" class="secondary" type="button">Leave</button></div>
         <div id="players" class="players"></div>
-        <p class="help"><strong>Controls:</strong> WASD or arrow keys. On phone, use the steering/gas/brake controls under the game. Sound starts after you interact with the page.</p>
+        <p class="help"><strong>Controls:</strong> WASD or arrow keys. On phone, use the steering/gas/brake controls under the game. The host can start when at least two players are connected and everyone is ready.</p>
         <div class="actions"><button id="ready" class="primary" type="button">I'm ready</button><button id="start" class="primary" type="button" hidden disabled>Start race</button></div>
       </div>
     </section>
 
     <section id="race" class="view">
       <div class="raceTop">
-        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight City Sprint · 3 laps</strong></div>
+        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>White City Sprint · 2–6 drivers · 3 laps</strong></div>
         <div class="raceActions"><button id="soundBtn" class="secondary compact" type="button">🔊 Sound on</button><button id="exitRace" class="secondary compact" type="button">Exit</button></div>
       </div>
       <div class="raceGrid">
@@ -59,7 +59,7 @@
             <canvas id="canvas"></canvas>
             <div class="cinematicBars" aria-hidden="true"></div>
             <div id="countdown" class="countdown">3</div>
-            <div class="cornerTag">MIDNIGHT CITY</div>
+            <div class="cornerTag">WHITE CITY</div>
           </div>
           <div class="touch">
             <button data-key="left" type="button">◀</button>
@@ -70,8 +70,9 @@
         <aside class="hud">
           <div><small>Your lap</small><strong id="lap">0 / 3</strong></div>
           <div><small>Speed</small><strong id="speed">0</strong><span> km/h</span></div>
-          <div><small>Position</small><strong id="position">1 / 2</strong></div>
-          <div><small>Drivers</small><p><i class="you"></i><span id="youName">You</span></p><p><i class="friend"></i><span id="friendName">Friend</span></p></div>
+          <div><small>Position</small><strong id="position">1 / 6</strong></div>
+          <div><small>Your driver</small><p><i class="you"></i><span id="youName">You</span></p></div>
+          <div><small>Race order</small><div id="driverList"></div></div>
         </aside>
       </div>
     </section>
