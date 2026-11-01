@@ -14,7 +14,7 @@
   function broadcast(msg){if(!isHost||soloMode)return;conns.forEach(c=>{if(c.open)c.send(msg)});}
   function send(msg){if(conn?.open)conn.send(msg);}
   function cleanup(){clearInterval(hostLoop);hostLoop=null;cancelAnimationFrame(raf);raf=null;try{conn?.close()}catch{}conns.forEach(c=>{try{c.close()}catch{}});try{peer?.destroy()}catch{}peer=null;conn=null;conns=new Map();guestInputs=new Map();world=null;ready=false;finished=false;soloMode=false;lastCrashSeq=0;lastGasPress=0;input={up:false,down:false,left:false,right:false,boost:false};MidnightSound.stop();}
-  function home(){cleanup();isHost=false;myName='';room='';myId='';status('Ready · 1:30 city boost build');error();show('home');}
+  function home(){cleanup();isHost=false;myName='';room='';myId='';status('Ready · lobby fix r20');error();show('home');}
   function activateMode(mode){['host','join','bot'].forEach(m=>{$('#'+m+'Tab')?.classList.toggle('active',m===mode);$('#'+m+'Form')?.classList.toggle('active',m===mode)});error();}
   $('#hostTab').onclick=()=>activateMode('host');$('#joinTab').onclick=()=>activateMode('join');$('#botTab').onclick=()=>activateMode('bot');['hostCode','joinCode'].forEach(id=>$('#'+id).oninput=e=>e.target.value=code(e.target.value));
   $('#hostForm').onsubmit=e=>{e.preventDefault();const n=$('#hostName').value.trim();if(n)host(n,code($('#hostCode').value)||rand())};
@@ -27,9 +27,14 @@
   function join(name,c){cleanup();error();if(typeof Peer==='undefined')return error('Multiplayer could not load. Check your connection.');myName=name;room=c;world={phase:'lobby',players:{},winner:null,raceEndsAt:0};status('Connecting…');peer=new Peer();peer.on('open',()=>{conn=peer.connect(peerId(c),{reliable:true});wireGuest(conn)});peer.on('error',()=>{status('Connection error');error('Could not connect. Check the room code and try again.')});}
   function wireGuest(c){const timer=setTimeout(()=>{if(!c.open)error('Room not found. Ask the host to keep the room open.')},7000);c.on('open',()=>{clearTimeout(timer);status('Connected · joining lobby')});c.on('data',d=>{if(!d||typeof d!=='object')return;if(d.type==='assign'){myId=d.id;$('#roomCode').textContent=room;$('#raceCode').textContent=room;send({type:'join',name:myName});show('lobby');}if(d.type==='reject'){error(d.reason||'Unable to join this room.');status('Join rejected');}if(d.type==='lobby'){world=d.world;show('lobby');updateLobby();}if(d.type==='count'){show('race');startRender();count(d.value);}if(d.type==='world'){world=d.world;show('race');startRender();updateHud();}if(d.type==='finish'){world=d.world;finish(d.winner);}if(d.type==='back'){world=d.world;finished=false;show('lobby');updateLobby();}});c.on('close',()=>status('Host disconnected'));}
   function openLobby(){$('#roomCode').textContent=room;$('#raceCode').textContent=room;show('lobby');updateLobby();}
-  function row(p){return`<div class="player"><span>${esc(p.name)}${p.id==='p1'?' <small>(host)</small>':''}${p.id===myId?' <small>(you)</small>':''}</span><span class="${p.ready?'ok':'wait'}">${p.ready?'Ready':'Not ready'}</span></div>`;}
+  function row(p){
+    const roles=[];
+    if(p.id==='p1')roles.push('<span class="roleBadge hostBadge">HOST</span>');
+    if(p.id===myId)roles.push('<span class="roleBadge youBadge">YOU</span>');
+    return `<div class="player ${p.ready?'playerReady':'playerWaiting'}" data-player-id="${esc(p.id)}"><span class="driverIdentity"><span class="driverName">${esc(p.name||'Driver')}</span><span class="driverBadges">${roles.join('')}</span></span><span class="readyBadge ${p.ready?'ok':'wait'}">${p.ready?'● READY':'● NOT READY'}</span></div>`;
+  }
   function connectedPlayers(){return world?Object.values(world.players).filter(p=>p.connected!==false):[];}
-  function allReady(){const ps=connectedPlayers();return ps.length>=2&&(!isHost||ps.length===conns.size+1)&&ps.every(p=>p.ready);}
+  function allReady(){const ps=connectedPlayers();return ps.length>=2&&ps.every(p=>p.ready);}
   function updateLobby(){if(!world)return;const ps=connectedPlayers().sort((a,b)=>Number(a.id.slice(1))-Number(b.id.slice(1)));$('#players').innerHTML=ps.map(row).join('');$('#playerCount').textContent=`${ps.length} / ${MAX_PLAYERS}`;$('#ready').textContent=ready?'Ready ✓':"I'm ready";$('#start').hidden=!isHost;if(isHost)$('#start').disabled=!allReady();$('#youName').textContent=world.players[myId]?.name||myName||'You';}
   function syncLobby(){updateLobby();broadcast({type:'lobby',world});}
   $('#ready').onclick=()=>{MidnightSound.init();ready=!ready;if(isHost){if(world.players.p1)world.players.p1.ready=ready;syncLobby();}else{if(world.players[myId])world.players[myId].ready=ready;updateLobby();send({type:'ready',value:ready});}};
@@ -80,5 +85,5 @@
   addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();if(k==='up'&&!e.repeat&&!input.up)gasTap();input[k]=true;inputSend()});
   addEventListener('keyup',e=>{const k=keys[e.key];if(!k)return;e.preventDefault();input[k]=false;inputSend()});
   document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key,on=e=>{e.preventDefault();MidnightSound.init();if(k==='up'&&!input.up)gasTap();input[k]=true;inputSend()},off=e=>{e.preventDefault();input[k]=false;inputSend()};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
-  status('Ready · 1:30 city boost build');
+  status('Ready · lobby fix r20');
 })();
