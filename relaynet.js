@@ -2,11 +2,13 @@
   const RealPeer = window.Peer;
   if (typeof WebSocket !== 'function') return;
 
+  // Two independent public brokers, both over normal HTTPS/WSS port 443.
+  // If one provider is blocked or unreachable in a country/network, the other can carry the room.
   const ENDPOINTS = [
     'wss://mqtt.eclipseprojects.io:443/mqtt',
-    'wss://broker.emqx.io:8084/mqtt'
+    'wss://test.mosquitto.org:443/mqtt'
   ];
-  const PREFIX = 'mcr-native-r15-443-b7d2';
+  const PREFIX = 'mcr-native-r16-dual443-5a91';
   const te = new TextEncoder();
   const td = new TextDecoder();
 
@@ -48,7 +50,7 @@
         const clientId=`mcr${uid(18)}`.slice(0,23);
         const variable=concat(mqttString('MQTT'),new Uint8Array([4,2,0,20]),mqttString(clientId));
         this.sendRaw(frame(0x10,variable));
-        this.handshakeTimer=setTimeout(()=>{if(!this.connected)try{ws.close()}catch(_){}},5000);
+        this.handshakeTimer=setTimeout(()=>{if(!this.connected)try{ws.close()}catch(_){}},6000);
       };
       ws.onmessage=e=>this.parse(e.data);
       ws.onerror=()=>{};
@@ -58,7 +60,7 @@
         this.scheduleReconnect();
       };
     }
-    scheduleReconnect(){if(this.closed)return;clearTimeout(this.reconnectTimer);this.reconnectTimer=setTimeout(()=>this.connect(),1200+Math.random()*700);}
+    scheduleReconnect(){if(this.closed)return;clearTimeout(this.reconnectTimer);this.reconnectTimer=setTimeout(()=>this.connect(),1000+Math.random()*900);}
     sendRaw(bytes){if(this.ws?.readyState===WebSocket.OPEN)try{this.ws.send(bytes)}catch(_){} }
     subscribe(topic){
       this.topics.add(topic);if(!this.connected)return;
@@ -101,14 +103,16 @@
     constructor(){
       this.subs=new Map();this.seen=new Set();this.ready=false;this.readyHandlers=[];this.failHandlers=[];this.closed=false;
       this.sockets=ENDPOINTS.map((url,i)=>new NativeMqttSocket(url,i,(t,p)=>this.route(t,p),()=>this.stateChanged()));
-      this.failTimer=setTimeout(()=>{if(!this.ready&&!this.closed)this.failHandlers.forEach(fn=>{try{fn()}catch(_){}})},9000);
+      this.failTimer=setTimeout(()=>{if(!this.ready&&!this.closed)this.failHandlers.forEach(fn=>{try{fn()}catch(_){}})},11000);
     }
     stateChanged(){
       if(this.closed)return;
       const online=this.sockets.filter(s=>s.connected);
       if(online.length&&!this.ready){this.ready=true;clearTimeout(this.failTimer);this.readyHandlers.splice(0).forEach(fn=>{try{fn()}catch(_){}});}
       const status=document.querySelector('#status');
-      if(status&&online.some(s=>s.index===0)&&/Ready|Creating|Connecting|Global relay/.test(status.textContent||''))status.textContent='Global relay · native WSS 443 online';
+      if(status&&online.length&&/Ready|Creating|Connecting|Global relay|Room open/.test(status.textContent||'')){
+        status.textContent=`Global relay online · ${online.length}/2 WSS 443`;
+      }
     }
     onReady(fn){if(this.ready)setTimeout(fn,0);else this.readyHandlers.push(fn);}
     onFail(fn){this.failHandlers.push(fn);}
@@ -116,7 +120,7 @@
     publish(topic,payload,reliable=false){
       const packet={mid:`${Date.now().toString(36)}-${uid(8)}`,payload};const text=JSON.stringify(packet);
       const send=()=>this.sockets.forEach(s=>s.publish(topic,text));send();
-      if(reliable){setTimeout(send,120);setTimeout(send,420);}return this.sockets.some(s=>s.connected);
+      if(reliable){setTimeout(send,100);setTimeout(send,300);setTimeout(send,750);}return this.sockets.some(s=>s.connected);
     }
     route(topic,text){
       let msg;try{msg=JSON.parse(text)}catch(_){return;}if(!msg?.mid||this.seen.has(msg.mid))return;
@@ -136,9 +140,13 @@
     _markOpen(){if(this._closed||this.open)return;this.open=true;this._emit('open');while(this._queue.length&&this.open)this.send(this._queue.shift());}
     send(data){
       if(this._closed)return;if(!this.open){this._queue.push(data);return;}
-      if(this.role==='host'&&data?.type==='world'){const now=performance.now();if(now-this._lastWorld<90)return;this._lastWorld=now;}
+      if(this.role==='host'&&data?.type==='world'){const now=performance.now();if(now-this._lastWorld<95)return;this._lastWorld=now;}
       const topic=this.role==='host'?this._topic('to'):this._topic('from');const important=!['world','input'].includes(data?.type);
       this.owner._bridge.publish(topic,{sys:'data',data},important);
+      // Joining a room should not depend on a separate ready packet surviving an overseas hop.
+      if(this.role==='guest'&&data?.type==='join'){
+        setTimeout(()=>this.owner._bridge.publish(topic,{sys:'data',data:{type:'ready',value:true}},true),180);
+      }
     }
     _receive(packet){if(this._closed||!packet)return;if(packet.sys==='open'){this._markOpen();return;}if(packet.sys==='close'){this._closeLocal();return;}if(packet.sys==='data')this._emit('data',packet.data);}
     close(){if(this._closed)return;const topic=this.role==='host'?this._topic('to'):this._topic('from');this.owner._bridge.publish(topic,{sys:'close'},true);this._closeLocal();}
@@ -152,7 +160,7 @@
       this._hostRoom=id?.startsWith('midnight-city-racing-')?id.slice('midnight-city-racing-'.length):null;
       this._connections=new Map();this._pendingConnections=[];this._opened=false;if(this._hostRoom)this._setupHost(this._hostRoom);
       this._bridge.onReady(()=>{if(this.destroyed)return;this._opened=true;this._emit('open',this.id)});
-      this._bridge.onFail(()=>{if(!this._opened&&!this.destroyed)this._emit('error',{type:'network',message:'Native WSS relay unavailable'})});
+      this._bridge.onFail(()=>{if(!this._opened&&!this.destroyed)this._emit('error',{type:'network',message:'Both WSS 443 relays are unavailable'})});
     }
     on(name,fn){super.on(name,fn);if(name==='open'&&this._opened)setTimeout(()=>{if(!this.destroyed)fn(this.id)},0);if(name==='connection'&&this._pendingConnections.length){const p=this._pendingConnections.splice(0);p.forEach(c=>setTimeout(()=>{if(!this.destroyed)fn(c)},0));}return this;}
     _deliverConnection(c){if((this._events.get('connection')||[]).length)this._emit('connection',c);else this._pendingConnections.push(c);}
@@ -161,14 +169,14 @@
         const guestId=msg?.guestId;if(!guestId||this.destroyed)return;let conn=this._connections.get(guestId);
         if(conn?._closed){this._connections.delete(guestId);conn=null;}
         if(!conn){conn=new RelayConnection(this,room,guestId,'host');this._connections.set(guestId,conn);this._bridge.subscribe(`${PREFIX}/${room}/from/${guestId}`,p=>conn._receive(p));this._deliverConnection(conn);}
-        setTimeout(()=>this._bridge.publish(`${PREFIX}/${room}/to/${guestId}`,{sys:'open'},true),100);
+        setTimeout(()=>this._bridge.publish(`${PREFIX}/${room}/to/${guestId}`,{sys:'open'},true),80);
       });
     }
     connect(targetId,options={}){
       const room=String(targetId||'').replace(/^midnight-city-racing-/,'');const guestId=`g${uid(12)}`;const conn=new RelayConnection(this,room,guestId,'guest');conn.metadata=options.metadata;
       this._connections.set(guestId,conn);this._bridge.subscribe(`${PREFIX}/${room}/to/${guestId}`,p=>conn._receive(p));let attempts=0;
-      const announce=()=>{if(this.destroyed||conn.open||conn._closed)return;attempts++;this._bridge.publish(`${PREFIX}/${room}/join`,{guestId},true);const s=document.querySelector('#status');if(s&&!conn.open)s.textContent=`Connecting globally on native 443… ${Math.min(attempts,15)}`;};
-      this._bridge.onReady(()=>{setTimeout(announce,180);const timer=setInterval(()=>{if(conn.open||conn._closed||this.destroyed){clearInterval(timer);return;}announce();if(attempts>=15){clearInterval(timer);conn._emit('error',new Error('International room handshake timed out.'));}},1000);});
+      const announce=()=>{if(this.destroyed||conn.open||conn._closed)return;attempts++;this._bridge.publish(`${PREFIX}/${room}/join`,{guestId},true);const s=document.querySelector('#status');if(s&&!conn.open)s.textContent=`Connecting internationally… ${Math.min(attempts,20)}`;};
+      this._bridge.onReady(()=>{setTimeout(announce,250);const timer=setInterval(()=>{if(conn.open||conn._closed||this.destroyed){clearInterval(timer);return;}announce();if(attempts>=20){clearInterval(timer);conn._emit('error',new Error('International room handshake timed out.'));}},900);});
       return conn;
     }
     reconnect(){this.disconnected=false;}
@@ -176,6 +184,6 @@
   }
 
   window.Peer=RelayPeer;
-  window.MidnightNetwork={build:'native-global-r15',transport:'native-mqtt-over-wss',primary:'mqtt.eclipseprojects.io:443/mqtt',endpoints:ENDPOINTS};
+  window.MidnightNetwork={build:'dual443-r16',transport:'native-mqtt-over-wss',endpoints:ENDPOINTS};
   window.MidnightDirectPeer=RealPeer;
 })();
