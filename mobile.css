@@ -1,0 +1,72 @@
+/* Mobile-first race layout overrides */
+html,body{width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+button,[data-key]{-webkit-tap-highlight-color:transparent}
+
+@media (max-width:700px){
+  body{overscroll-behavior-y:none}
+  body:has(#race.active){height:100dvh;min-height:100dvh;overflow:hidden;position:fixed;inset:0;width:100%}
+  .wrap:has(#race.active){height:100dvh;min-height:0;width:100%;max-width:none;padding:calc(5px + env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) calc(5px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));display:flex;flex-direction:column;overflow:hidden}
+
+  .wrap:has(#race.active)>.top{flex:0 0 auto;margin:0 0 4px;min-height:38px;gap:6px}
+  .wrap:has(#race.active) .logo{width:34px;height:34px;border-radius:9px;font-size:18px}
+  .wrap:has(#race.active) .brand{gap:7px;min-width:0}
+  .wrap:has(#race.active) .brand strong{font-size:12px;letter-spacing:.045em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+  .wrap:has(#race.active) .pill{padding:5px 8px;font-size:10px;white-space:nowrap}
+
+  #race.active{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;overflow:hidden}
+  #race .raceTop{flex:0 0 auto;min-height:34px;padding:2px 1px;gap:5px;align-items:center}
+  #race .raceTop .eyebrow{display:none}
+  #race .raceTop strong{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58vw}
+  #race .raceActions{gap:4px;flex-wrap:nowrap}
+  #race .raceActions .compact{min-height:30px;padding:5px 8px;border-radius:9px;font-size:10px;white-space:nowrap}
+
+  #race .raceGrid{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;flex:1 1 auto;min-height:0;margin-top:3px;gap:4px;overflow:hidden}
+  #race .trackCard{display:flex;flex-direction:column;min-height:0;padding:3px;border-radius:12px;overflow:hidden}
+  #race .canvasWrap{flex:1 1 auto;min-height:0!important;height:auto;aspect-ratio:auto!important;border-radius:10px}
+  #race .canvasWrap>canvas#canvas{width:100%!important;height:100%!important;min-height:0;border-radius:10px;touch-action:none}
+  #race .cornerTag{display:none}
+  #race .cinematicBars:before,#race .cinematicBars:after{height:1.6%}
+
+  #race .touch{display:grid;grid-template-columns:1fr 1.55fr 1fr;gap:6px;flex:0 0 auto;margin:4px 0 0;padding:0 0 env(safe-area-inset-bottom);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+  #race .touchMid{gap:6px}
+  #race .touch button{height:66px;min-height:66px;border-radius:14px;font-size:25px;box-shadow:0 5px 14px rgba(0,0,0,.35);touch-action:none;user-select:none;-webkit-user-select:none}
+  #race .touch .gas,#race .touch .brake{font-size:13px;letter-spacing:.04em}
+  #race .touch .gas{background:linear-gradient(180deg,#174b2d,#0e2f1c)}
+  #race .touch .brake{background:linear-gradient(180deg,#551f24,#351317)}
+
+  #race .hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;min-height:0}
+  #race .hud>div{min-width:0;padding:6px 5px;border-radius:9px;text-align:center}
+  #race .hud>div:nth-child(n+5){display:none}
+  #race .hud small{font-size:8px;line-height:1.05;letter-spacing:.035em;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #race .hud strong{font-size:17px;line-height:1}
+  #race .hud span{font-size:9px}
+
+  #race .minimapWrap{width:132px!important;left:6px!important;bottom:6px!important;padding:5px!important;border-radius:10px!important;background:rgba(5,8,12,.8)!important}
+  #race .minimapHead{font-size:7px!important;margin-bottom:3px!important;letter-spacing:.07em!important}
+  #race .minimapWrap canvas{border-radius:7px!important}
+
+  .countdown{font-size:clamp(72px,30vw,125px)}
+}
+
+@media (max-width:430px){
+  .wrap:has(#race.active) .brand strong{max-width:145px;font-size:11px}
+  .wrap:has(#race.active) .pill{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+  #race .raceTop strong{max-width:52vw;font-size:10px}
+  #race .touch button{height:62px;min-height:62px}
+  #race .minimapWrap{width:116px!important}
+  #race .hud strong{font-size:15px}
+}
+
+@media (max-width:700px) and (orientation:landscape) and (max-height:520px){
+  .wrap:has(#race.active)>.top{display:none}
+  #race .raceTop{min-height:28px}
+  #race .raceGrid{grid-template-columns:minmax(0,1fr) 126px;grid-template-rows:minmax(0,1fr);gap:4px}
+  #race .trackCard{min-height:0}
+  #race .touch{position:absolute;left:10px;right:10px;bottom:max(5px,env(safe-area-inset-bottom));z-index:8;grid-template-columns:72px 150px 72px;justify-content:center;pointer-events:none;background:transparent;margin:0;padding:0}
+  #race .touch button{height:54px;min-height:54px;opacity:.88;pointer-events:auto}
+  #race .hud{grid-template-columns:1fr;grid-auto-rows:1fr;align-content:start;gap:3px}
+  #race .hud>div{padding:5px 3px}
+  #race .hud small{font-size:7px}
+  #race .hud strong{font-size:14px}
+  #race .minimapWrap{width:110px!important;bottom:66px!important}
+}
