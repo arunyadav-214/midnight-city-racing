@@ -4,27 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="theme-color" content="#eef1f4">
-  <title>Midnight City Racing · 3D Multiplayer Street Race</title>
+  <title>Midnight City Racing · 3D Multiplayer & Bot Racing</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="mapnav.css">
+  <link rel="stylesheet" href="botmode.css">
 </head>
 <body>
   <main class="wrap">
     <header class="top">
-      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · 2–6 player online street racing</small></div></div>
+      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · online multiplayer + solo bot racing</small></div></div>
       <span class="pill" id="status">Ready</span>
     </header>
 
     <section id="home" class="view active">
       <div class="hero">
         <div class="panel intro">
-          <p class="eyebrow">REAL-TIME 3D MULTIPLAYER</p>
-          <h1>Own the city streets.<br><span>First to 3 laps wins.</span></h1>
-          <p>Race with up to six players through a bright 3D city with wide black asphalt roads, chase-camera driving, engine sound, skid effects, and live navigation.</p>
-          <div class="chips"><span>Up to 6 players</span><span>Wide black roads</span><span>Live minimap</span><span>3D chase camera</span><span>Engine audio</span><span>Touch controls</span></div>
+          <p class="eyebrow">3D STREET RACING</p>
+          <h1>Own the city streets.<br><span>Race friends or bots.</span></h1>
+          <p>Race through a colorful 3D city with wide black asphalt roads, live navigation, engine sound, and up to six cars. Play online with friends or choose 1–5 computer-controlled rivals.</p>
+          <div class="chips"><span>2–6 online players</span><span>1–5 bots</span><span>Colorful city</span><span>Wide black roads</span><span>Live minimap</span><span>Engine audio</span></div>
         </div>
         <div class="panel">
-          <div class="tabs"><button id="hostTab" class="tab active" type="button">Host race</button><button id="joinTab" class="tab" type="button">Join friend</button></div>
+          <div class="modeTabs">
+            <button id="hostTab" class="tab active" type="button">Host online</button>
+            <button id="joinTab" class="tab" type="button">Join friend</button>
+            <button id="botTab" class="tab" type="button">Solo vs Bots</button>
+          </div>
           <form id="hostForm" class="form active">
             <label>Your name<input id="hostName" maxlength="18" placeholder="Your name" required></label>
             <label>Room code<input id="hostCode" maxlength="6" placeholder="Auto-generated"></label>
@@ -34,6 +39,20 @@
             <label>Your name<input id="joinName" maxlength="18" placeholder="Your name" required></label>
             <label>Room code<input id="joinCode" maxlength="6" placeholder="ABC123" required></label>
             <button class="primary" type="submit">Join race</button>
+          </form>
+          <form id="botForm" class="form">
+            <label>Your name<input id="botName" maxlength="18" placeholder="Your name" required></label>
+            <label>Number of bots
+              <select id="botCount">
+                <option value="1">1 bot · 2 cars total</option>
+                <option value="2">2 bots · 3 cars total</option>
+                <option value="3" selected>3 bots · 4 cars total</option>
+                <option value="4">4 bots · 5 cars total</option>
+                <option value="5">5 bots · 6 cars total</option>
+              </select>
+            </label>
+            <p class="botHint">Bots drive the same road, pass the same checkpoints, appear on the live map, and race for the same finish line.</p>
+            <button class="primary" type="submit">Start bot race</button>
           </form>
           <div id="error" class="error" hidden></div>
         </div>
@@ -51,7 +70,7 @@
 
     <section id="race" class="view">
       <div class="raceTop">
-        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight City Sprint · 2–6 drivers · 3 laps</strong></div>
+        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight City Sprint · up to 6 cars · 3 laps</strong></div>
         <div class="raceActions"><button id="soundBtn" class="secondary compact" type="button">🔊 Sound on</button><button id="exitRace" class="secondary compact" type="button">Exit</button></div>
       </div>
       <div class="raceGrid">
@@ -90,9 +109,11 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="roadtheme.js"></script>
+  <script src="buildingtheme.js"></script>
   <script src="scene3d.js"></script>
   <script src="mapnav.js"></script>
   <script src="sound3d.js"></script>
+  <script src="bots.js"></script>
   <script src="game3d.js"></script>
 </body>
 </html>
