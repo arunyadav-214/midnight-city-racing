@@ -41,8 +41,8 @@
   function onRoad(x,y){return T().roads.some(r=>x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h);}
   function drive(c,k,dt){
     if(c.done)return;
-    const now=Date.now();
-    if(k.boost&&now>=(c.boostCooldown||0)){c.boostStart=now;c.boostUntil=now+BOOST_MS;c.boostCooldown=now+BOOST_COOLDOWN;c.boostSeq=(c.boostSeq||0)+1;c.v=Math.max(c.v,390);k.boost=false;}
+    const now=Date.now(),boostRequested=!!k.boost;if(boostRequested)k.boost=false;
+    if(boostRequested&&now>=(c.boostCooldown||0)){c.boostStart=now;c.boostUntil=now+BOOST_MS;c.boostCooldown=now+BOOST_COOLDOWN;c.boostSeq=(c.boostSeq||0)+1;c.v=Math.max(c.v,390);}
     const flying=now<(c.boostUntil||0),road=onRoad(c.x,c.y),bf=c.bot?MidnightBots.speedFactor(c):1,ac=k.up?(road?300*bf:150*bf):k.down?-190:0;
     c.v+=ac*dt;c.v*=Math.pow(road?.987:.955,dt*60);c.v=Math.max(-105,Math.min((flying?430:345)*bf,c.v));if(Math.abs(c.v)<.8)c.v=0;
     const steer=(k.left?-1:0)+(k.right?1:0),speed=Math.min(1,Math.abs(c.v)/430),maxHeading=.34-.12*speed,target=steer*maxHeading*(c.v>=0?1:-1),rate=(road?.92:.58)*(.45+.55*speed),delta=target-c.a,step=rate*dt;
@@ -76,7 +76,7 @@
   $('#rematch').onclick=()=>{MidnightSound.init();ready=true;if(soloMode){startRace();return;}if(isHost){world.phase='lobby';Object.values(world.players).forEach(p=>p.ready=p.id==='p1');broadcast({type:'back',world});show('lobby');updateLobby();syncLobby();}else{if(world.players[myId])world.players[myId].ready=true;send({type:'rematch'});show('lobby');updateLobby();}};
   $('#soundBtn').onclick=()=>{$('#soundBtn').textContent=MidnightSound.toggle()?'🔊 Sound on':'🔇 Sound off'};
   const keys={ArrowUp:'up',w:'up',W:'up',ArrowDown:'down',s:'down',S:'down',ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right'},inputSend=()=>{if(!isHost)send({type:'input',value:input})};
-  function gasTap(){const now=performance.now(),gap=now-lastGasPress;if(gap>65&&gap<360){input.boost=true;inputSend();lastGasPress=0;}else lastGasPress=now;}
+  function gasTap(){const now=performance.now(),gap=now-lastGasPress;if(gap>65&&gap<360){input.boost=true;inputSend();setTimeout(()=>{input.boost=false;inputSend()},180);lastGasPress=0;}else lastGasPress=now;}
   addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();if(k==='up'&&!e.repeat)gasTap();input[k]=true;inputSend()});
   addEventListener('keyup',e=>{const k=keys[e.key];if(!k)return;e.preventDefault();input[k]=false;inputSend()});
   document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key,on=e=>{e.preventDefault();MidnightSound.init();if(k==='up')gasTap();input[k]=true;inputSend()},off=e=>{e.preventDefault();input[k]=false;inputSend()};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
