@@ -113,16 +113,24 @@
     road();city();addEventListener('resize',resize);resize();lastFrame=performance.now();ready=true;return true;
   }
 
+  function boostHeight(s,now){
+    const start=Number(s.boostStart)||0,end=Number(s.boostUntil)||0;
+    if(!start||now>=end||end<=start)return 0;
+    const t=Math.max(0,Math.min(1,(now-start)/(end-start)));
+    return Math.sin(Math.PI*t)*5.8;
+  }
+
   function update(world,myId){
-    if(!ready||!world?.players)return;ensureCars(world.players);const now=performance.now(),dt=Math.min(.04,(now-lastFrame)/1000);lastFrame=now;updateEffects(dt);
+    if(!ready||!world?.players)return;ensureCars(world.players);const frameNow=performance.now(),dt=Math.min(.04,(frameNow-lastFrame)/1000);lastFrame=frameNow;updateEffects(dt);const now=Date.now();
     Object.entries(world.players).forEach(([id,s])=>{
-      const m=cars[id],p=wp(s.x,s.y),power=Math.max(.25,Math.min(1,s.crashPower||.5));m.position.set(p.x,.05,p.z);m.rotation.y=-s.a;
+      const m=cars[id],p=wp(s.x,s.y),power=Math.max(.25,Math.min(1,s.crashPower||.5)),air=boostHeight(s,now);m.position.set(p.x,.05+air,p.z);m.rotation.y=-s.a;
       if((s.crashSeq||0)!==(lastCrash[id]||0)){lastCrash[id]=s.crashSeq||0;if(s.crashSeq)spawnImpact(m.position.clone(),power);}
-      if(s.crashUntil&&Date.now()<s.crashUntil){const pulse=Math.sin(Date.now()*.045+Number(id.slice(1)));m.rotation.z=pulse*.10*power;m.rotation.x=Math.cos(Date.now()*.05)*.04*power;m.position.y=.05+Math.abs(pulse)*.15*power;}else{m.rotation.z*=.78;m.rotation.x*=.78;}
+      if(air>0){const total=Math.max(1,(s.boostUntil||0)-(s.boostStart||0)),t=Math.max(0,Math.min(1,(now-(s.boostStart||0))/total));m.rotation.z*=.82;m.rotation.x=-Math.sin(Math.PI*t)*.13;}
+      else if(s.crashUntil&&now<s.crashUntil){const pulse=Math.sin(now*.045+Number(id.slice(1)));m.rotation.z=pulse*.10*power;m.rotation.x=Math.cos(now*.05)*.04*power;m.position.y=.05+Math.abs(pulse)*.15*power;}else{m.rotation.z*=.78;m.rotation.x*=.78;}
     });
-    const me=world.players[myId];if(!me)return;const p=wp(me.x,me.y),d=new THREE.Vector3(Math.cos(me.a),0,Math.sin(me.a)),f=Math.min(1,Math.abs(me.v)/345),tc=new THREE.Vector3(p.x-d.x*(10+f*3),5.3+f,p.z-d.z*(10+f*3));
-    if(me.crashUntil&&Date.now()<me.crashUntil){const power=Math.max(.25,Math.min(1,me.crashPower||.5)),shake=.22+.62*power;tc.x+=Math.sin(Date.now()*.095)*shake;tc.y+=Math.sin(Date.now()*.12)*shake*.55;tc.z+=Math.cos(Date.now()*.105)*shake;}
-    cam.position.lerp(tc,.09);look.lerp(new THREE.Vector3(p.x+d.x*5,1.15,p.z+d.z*5),.14);cam.lookAt(look);cam.fov=65+f*7;cam.updateProjectionMatrix();resize();r.render(sc,cam);
+    const me=world.players[myId];if(!me)return;const p=wp(me.x,me.y),d=new THREE.Vector3(Math.cos(me.a),0,Math.sin(me.a)),f=Math.min(1,Math.abs(me.v)/430),air=boostHeight(me,now),tc=new THREE.Vector3(p.x-d.x*(10+f*3),5.3+f+air*.28,p.z-d.z*(10+f*3));
+    if(!air&&me.crashUntil&&now<me.crashUntil){const power=Math.max(.25,Math.min(1,me.crashPower||.5)),shake=.22+.62*power;tc.x+=Math.sin(now*.095)*shake;tc.y+=Math.sin(now*.12)*shake*.55;tc.z+=Math.cos(now*.105)*shake;}
+    cam.position.lerp(tc,.09);look.lerp(new THREE.Vector3(p.x+d.x*5,1.15+air*.34,p.z+d.z*5),.14);cam.lookAt(look);cam.fov=65+f*7+(air>0?3:0);cam.updateProjectionMatrix();resize();r.render(sc,cam);
   }
 
   const colorFor=id=>COLORS[id]||'#fff';window.Midnight3D={init,update,track:T,scale:S,colorFor};
