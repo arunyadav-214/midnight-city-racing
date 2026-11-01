@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#eef1f4">
   <title>Midnight City Racing · 3D Multiplayer Street Race</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="mapnav.css">
 </head>
 <body>
   <main class="wrap">
@@ -19,8 +20,8 @@
         <div class="panel intro">
           <p class="eyebrow">REAL-TIME 3D MULTIPLAYER</p>
           <h1>Own the city streets.<br><span>First to 3 laps wins.</span></h1>
-          <p>Race with up to six players through a bright white 3D city circuit with wider streets, chase-camera driving, engine sound, skid effects, and synchronized online racing.</p>
-          <div class="chips"><span>Up to 6 players</span><span>Wide city roads</span><span>3D chase camera</span><span>Engine audio</span><span>Touch controls</span></div>
+          <p>Race with up to six players through a bright 3D city with wide black asphalt roads, chase-camera driving, engine sound, skid effects, and live navigation.</p>
+          <div class="chips"><span>Up to 6 players</span><span>Wide black roads</span><span>Live minimap</span><span>3D chase camera</span><span>Engine audio</span><span>Touch controls</span></div>
         </div>
         <div class="panel">
           <div class="tabs"><button id="hostTab" class="tab active" type="button">Host race</button><button id="joinTab" class="tab" type="button">Join friend</button></div>
@@ -50,7 +51,7 @@
 
     <section id="race" class="view">
       <div class="raceTop">
-        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>White City Sprint · 2–6 drivers · 3 laps</strong></div>
+        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight City Sprint · 2–6 drivers · 3 laps</strong></div>
         <div class="raceActions"><button id="soundBtn" class="secondary compact" type="button">🔊 Sound on</button><button id="exitRace" class="secondary compact" type="button">Exit</button></div>
       </div>
       <div class="raceGrid">
@@ -59,7 +60,12 @@
             <canvas id="canvas"></canvas>
             <div class="cinematicBars" aria-hidden="true"></div>
             <div id="countdown" class="countdown">3</div>
-            <div class="cornerTag">WHITE CITY</div>
+            <div class="cornerTag">MIDNIGHT CITY</div>
+            <div class="minimapWrap" aria-label="Live race navigation map">
+              <div class="minimapHead"><span>RACE MAP</span><span>NAVIGATION</span></div>
+              <canvas id="minimap" width="240" height="156"></canvas>
+              <div class="mapKey"><span><i class="finishKey"></i><b>Finish</b></span><span>● next checkpoint</span></div>
+            </div>
           </div>
           <div class="touch">
             <button data-key="left" type="button">◀</button>
@@ -84,6 +90,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="scene3d.js"></script>
+  <script src="mapnav.js"></script>
   <script src="sound3d.js"></script>
   <script src="game3d.js"></script>
 </body>
