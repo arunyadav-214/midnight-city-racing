@@ -3,7 +3,6 @@
     {x:820,y:547},
     {x:823,y:165},
     {x:545,y:165},
-    {x:545,y:295},
     {x:240,y:295},
     {x:240,y:547},
     {x:545,y:547}
@@ -25,19 +24,19 @@
     if(!Number.isInteger(car.aiWaypoint)) car.aiWaypoint = 0;
     let t = WAYPOINTS[car.aiWaypoint % WAYPOINTS.length];
     let dx=t.x-car.x, dy=t.y-car.y;
-    if(Math.hypot(dx,dy) < 50){
+    if(Math.hypot(dx,dy) < 55){
       car.aiWaypoint = (car.aiWaypoint + 1) % WAYPOINTS.length;
       t = WAYPOINTS[car.aiWaypoint];
       dx=t.x-car.x; dy=t.y-car.y;
     }
     const desired = Math.atan2(dy,dx);
     const diff = norm(desired - car.a);
-    const hard = Math.abs(diff) > 0.75;
+    const hard = Math.abs(diff) > 0.68;
     return {
-      up: !(hard && Math.abs(car.v) > 135),
-      down: hard && Math.abs(car.v) > 175,
-      left: diff < -0.06,
-      right: diff > 0.06
+      up: !(hard && Math.abs(car.v) > 150),
+      down: hard && Math.abs(car.v) > 190,
+      left: diff < -0.055,
+      right: diff > 0.055
     };
   }
   const name = i => `Bot ${NAMES[i % NAMES.length]}`;
