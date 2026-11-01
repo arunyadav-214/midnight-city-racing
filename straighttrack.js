@@ -2,27 +2,29 @@
   if (!window.Midnight3D?.track) return;
   const track = Midnight3D.track;
 
-  // Cleaner rectangular street circuit with longer straightaways.
+  // One long, wide straight road from START to FINISH. No turns.
   track.roads.splice(0, track.roads.length,
-    {x:95,  y:472, w:825, h:150},  // long bottom straight
-    {x:748, y:90,  w:150, h:532},  // long right straight
-    {x:165, y:90,  w:733, h:150},  // long top straight
-    {x:165, y:90,  w:150, h:532}   // long left return
+    {x:60, y:205, w:880, h:240}
   );
 
+  // Long lane guides across the straight.
   track.marks.splice(0, track.marks.length,
-    [125,547,895,547],
-    [823,120,823,600],
-    [205,165,875,165],
-    [240,120,240,600]
+    [80,245,925,245],
+    [80,285,925,285],
+    [80,325,925,325],
+    [80,365,925,365],
+    [80,405,925,405]
   );
 
-  // Reposition a few buildings so the straighter road stays clear.
+  // Put the colorful buildings along the roadside, never on the track.
   const positions = {
-    AUTO:   {x:350,y:260,w:105,h:105},
-    HOTEL:  {x:480,y:260,w:110,h:115},
-    GARAGE: {x:620,y:260,w:95,h:155},
-    PIER:   {x:365,y:390,w:120,h:72}
+    MALL:    {x:70, y:35,  w:125, h:130},
+    CLUB:    {x:235,y:35,  w:110, h:130},
+    AUTO:    {x:390,y:30,  w:110, h:120},
+    HOTEL:   {x:555,y:30,  w:120, h:125},
+    GARAGE:  {x:735,y:35,  w:110, h:130},
+    PIER:    {x:230,y:485, w:145, h:90},
+    DOCK:    {x:610,y:485, w:140, h:90}
   };
   track.buildings.forEach(b => {
     const p = positions[b.l];
