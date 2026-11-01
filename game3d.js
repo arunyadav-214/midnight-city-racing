@@ -1,12 +1,12 @@
 (() => {
   const $=s=>document.querySelector(s),views=['home','lobby','race','finish'],canvas=$('#canvas');
-  const MAX_PLAYERS=6,RACE_MS=90000,COLLISION_DIST=30,BOOST_MS=2000,BOOST_COOLDOWN=3200;
+  const MAX_PLAYERS=6,RACE_MS=90000,COLLISION_DIST=30,BOOST_MS=2000,BOOST_COOLDOWN=3200,BASE_MAX=390,BOOST_MAX=540,BOOST_LAUNCH=480;
   let peer=null,isHost=false,soloMode=false,myName='',room='',myId='',world=null,ready=false,finished=false,hostLoop=null,raf=null,conn=null,conns=new Map(),guestInputs=new Map(),input={up:false,down:false,left:false,right:false,boost:false},lastCrashSeq=0,lastGasPress=0;
   const T=()=>Midnight3D.track,START=()=>T().startX||115,FINISH=()=>T().finishX||30000,YMIN=()=>T().roadMinY||205,YMAX=()=>T().roadMaxY||445;
   const show=id=>views.forEach(v=>$('#'+v).classList.toggle('active',v===id)),status=t=>$('#status').textContent=t;
   const code=s=>(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6),peerId=c=>'midnight-city-racing-'+c.toLowerCase();
   const rand=()=>{const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s};
-  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const error=(t='')=>{const e=$('#error');e.hidden=!t;e.textContent=t};
   const lanes=[325,245,405,285,365,425];
   function player(id,name,index=0){return{id,name,ready:false,connected:true,x:START(),y:lanes[index]||325,a:0,v:0,done:false,finish:0,crashUntil:0,crashSeq:0,crashPower:0,boostStart:0,boostUntil:0,boostCooldown:0,boostSeq:0};}
@@ -14,7 +14,7 @@
   function broadcast(msg){if(!isHost||soloMode)return;conns.forEach(c=>{if(c.open)c.send(msg)});}
   function send(msg){if(conn?.open)conn.send(msg);}
   function cleanup(){clearInterval(hostLoop);hostLoop=null;cancelAnimationFrame(raf);raf=null;try{conn?.close()}catch{}conns.forEach(c=>{try{c.close()}catch{}});try{peer?.destroy()}catch{}peer=null;conn=null;conns=new Map();guestInputs=new Map();world=null;ready=false;finished=false;soloMode=false;lastCrashSeq=0;lastGasPress=0;input={up:false,down:false,left:false,right:false,boost:false};MidnightSound.stop();}
-  function home(){cleanup();isHost=false;myName='';room='';myId='';status('Ready · 1:30 track build');error();show('home');}
+  function home(){cleanup();isHost=false;myName='';room='';myId='';status('Ready · 1:30 city boost build');error();show('home');}
   function activateMode(mode){['host','join','bot'].forEach(m=>{$('#'+m+'Tab')?.classList.toggle('active',m===mode);$('#'+m+'Form')?.classList.toggle('active',m===mode)});error();}
   $('#hostTab').onclick=()=>activateMode('host');$('#joinTab').onclick=()=>activateMode('join');$('#botTab').onclick=()=>activateMode('bot');['hostCode','joinCode'].forEach(id=>$('#'+id).oninput=e=>e.target.value=code(e.target.value));
   $('#hostForm').onsubmit=e=>{e.preventDefault();const n=$('#hostName').value.trim();if(n)host(n,code($('#hostCode').value)||rand())};
@@ -42,10 +42,10 @@
   function drive(c,k,dt){
     if(c.done)return;
     const now=Date.now(),boostRequested=!!k.boost;if(boostRequested)k.boost=false;
-    if(boostRequested&&now>=(c.boostCooldown||0)){c.boostStart=now;c.boostUntil=now+BOOST_MS;c.boostCooldown=now+BOOST_COOLDOWN;c.boostSeq=(c.boostSeq||0)+1;c.v=Math.max(c.v,390);}
-    const flying=now<(c.boostUntil||0),road=onRoad(c.x,c.y),bf=c.bot?MidnightBots.speedFactor(c):1,ac=k.up?(road?300*bf:150*bf):k.down?-190:0;
-    c.v+=ac*dt;c.v*=Math.pow(road?.987:.955,dt*60);c.v=Math.max(-105,Math.min((flying?430:345)*bf,c.v));if(Math.abs(c.v)<.8)c.v=0;
-    const steer=(k.left?-1:0)+(k.right?1:0),speed=Math.min(1,Math.abs(c.v)/430),maxHeading=.34-.12*speed,target=steer*maxHeading*(c.v>=0?1:-1),rate=(road?.92:.58)*(.45+.55*speed),delta=target-c.a,step=rate*dt;
+    if(boostRequested&&now>=(c.boostCooldown||0)){c.boostStart=now;c.boostUntil=now+BOOST_MS;c.boostCooldown=now+BOOST_COOLDOWN;c.boostSeq=(c.boostSeq||0)+1;c.v=Math.max(c.v,BOOST_LAUNCH);}
+    const flying=now<(c.boostUntil||0),road=onRoad(c.x,c.y),bf=c.bot?MidnightBots.speedFactor(c):1,ac=k.up?(road?330*bf:165*bf):k.down?-195:0;
+    c.v+=ac*dt;c.v*=Math.pow(road?.987:.955,dt*60);c.v=Math.max(-110,Math.min((flying?BOOST_MAX:BASE_MAX)*bf,c.v));if(Math.abs(c.v)<.8)c.v=0;
+    const steer=(k.left?-1:0)+(k.right?1:0),speed=Math.min(1,Math.abs(c.v)/BOOST_MAX),maxHeading=.34-.12*speed,target=steer*maxHeading*(c.v>=0?1:-1),rate=(road?.92:.58)*(.45+.55*speed),delta=target-c.a,step=rate*dt;
     c.a+=Math.max(-step,Math.min(step,delta));
     if(!steer&&Math.abs(c.a)<.008)c.a=0;
     const ox=c.x,oy=c.y;c.x+=Math.cos(c.a)*c.v*dt;c.y+=Math.sin(c.a)*c.v*dt;
@@ -59,7 +59,7 @@
       const a=ps[i],b=ps[j];if(a.done||b.done||now<(a.boostUntil||0)||now<(b.boostUntil||0))continue;let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);if(d>=COLLISION_DIST)continue;if(d<.01){dx=1;dy=0;d=1;}
       const nx=dx/d,ny=dy/d,over=COLLISION_DIST-d,av=a.v,bv=b.v,relative=Math.abs(av-bv),impact=Math.max(.28,Math.min(1,relative/170+over/28));
       a.x-=nx*over*.56;a.y-=ny*over*.56;b.x+=nx*over*.56;b.y+=ny*over*.56;
-      a.v=Math.max(-85,Math.min(345,av*(.48-impact*.08)+bv*(.30+impact*.08)));b.v=Math.max(-85,Math.min(345,bv*(.48-impact*.08)+av*(.40+impact*.08)));
+      a.v=Math.max(-85,Math.min(BASE_MAX,av*(.48-impact*.08)+bv*(.30+impact*.08)));b.v=Math.max(-85,Math.min(BASE_MAX,bv*(.48-impact*.08)+av*(.40+impact*.08)));
       const spin=(.10+impact*.30)*Math.max(.25,Math.abs(ny));a.a=Math.max(-.46,Math.min(.46,a.a-ny*spin));b.a=Math.max(-.46,Math.min(.46,b.a+ny*spin));
       const until=Date.now()+Math.round(520+impact*520);a.crashUntil=until;b.crashUntil=until;a.crashPower=impact;b.crashPower=impact;a.crashSeq=(a.crashSeq||0)+1;b.crashSeq=(b.crashSeq||0)+1;
     }
@@ -76,9 +76,9 @@
   $('#rematch').onclick=()=>{MidnightSound.init();ready=true;if(soloMode){startRace();return;}if(isHost){world.phase='lobby';Object.values(world.players).forEach(p=>p.ready=p.id==='p1');broadcast({type:'back',world});show('lobby');updateLobby();syncLobby();}else{if(world.players[myId])world.players[myId].ready=true;send({type:'rematch'});show('lobby');updateLobby();}};
   $('#soundBtn').onclick=()=>{$('#soundBtn').textContent=MidnightSound.toggle()?'🔊 Sound on':'🔇 Sound off'};
   const keys={ArrowUp:'up',w:'up',W:'up',ArrowDown:'down',s:'down',S:'down',ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right'},inputSend=()=>{if(!isHost)send({type:'input',value:input})};
-  function gasTap(){const now=performance.now(),gap=now-lastGasPress;if(gap>65&&gap<360){input.boost=true;inputSend();setTimeout(()=>{input.boost=false;inputSend()},180);lastGasPress=0;}else lastGasPress=now;}
-  addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();if(k==='up'&&!e.repeat)gasTap();input[k]=true;inputSend()});
+  function gasTap(){const now=performance.now(),gap=now-lastGasPress;if(gap>=70&&gap<=300){input.boost=true;inputSend();setTimeout(()=>{input.boost=false;inputSend()},160);lastGasPress=0;}else lastGasPress=now;}
+  addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();if(k==='up'&&!e.repeat&&!input.up)gasTap();input[k]=true;inputSend()});
   addEventListener('keyup',e=>{const k=keys[e.key];if(!k)return;e.preventDefault();input[k]=false;inputSend()});
-  document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key,on=e=>{e.preventDefault();MidnightSound.init();if(k==='up')gasTap();input[k]=true;inputSend()},off=e=>{e.preventDefault();input[k]=false;inputSend()};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
-  status('Ready · 1:30 track build');
+  document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key,on=e=>{e.preventDefault();MidnightSound.init();if(k==='up'&&!input.up)gasTap();input[k]=true;inputSend()},off=e=>{e.preventDefault();input[k]=false;inputSend()};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
+  status('Ready · 1:30 city boost build');
 })();
