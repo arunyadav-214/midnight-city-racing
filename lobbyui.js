@@ -22,27 +22,31 @@
     let readyCount = 0;
 
     rows.forEach((row, index) => {
-      const identity = row.children[0];
-      const status = row.children[1];
+      const existingNo = row.querySelector('.driverNo');
+      const identity = row.querySelector('.driverIdentity') || (existingNo ? row.children[1] : row.children[0]);
+      const status = row.querySelector('.readyBadge') || row.querySelector('.ok, .wait') || (existingNo ? row.children[2] : row.children[1]);
       if (!identity || !status) return;
 
       const raw = identity.textContent || '';
-      const isHost = /\(host\)/i.test(raw);
-      const isYou = /\(you\)/i.test(raw);
-      const isReady = status.classList.contains('ok') || /^ready/i.test(status.textContent.trim());
+      const alreadyDecorated = identity.dataset.rosterDecorated === '1';
+      const isHost = alreadyDecorated ? !!identity.querySelector('.hostBadge') : /\(host\)/i.test(raw);
+      const isYou = alreadyDecorated ? !!identity.querySelector('.youBadge') : /\(you\)/i.test(raw);
+      const isReady = status.classList.contains('ok') || /READY$/i.test(status.textContent.trim()) && !/NOT READY$/i.test(status.textContent.trim());
       if (isReady) readyCount++;
 
       row.classList.toggle('playerReady', isReady);
       row.classList.toggle('playerWaiting', !isReady);
 
-      if (!row.querySelector('.driverNo')) {
+      if (!existingNo) {
         const no = document.createElement('span');
         no.className = 'driverNo';
         no.textContent = String(index + 1);
         row.prepend(no);
+      } else if (existingNo.textContent !== String(index + 1)) {
+        existingNo.textContent = String(index + 1);
       }
 
-      if (!identity.dataset.rosterDecorated) {
+      if (!alreadyDecorated) {
         const name = document.createElement('span');
         name.className = 'driverName';
         name.textContent = cleanRoleText(raw);
@@ -69,17 +73,29 @@
       }
 
       status.classList.add('readyBadge');
-      status.textContent = isReady ? '● READY' : '● NOT READY';
+      const label = isReady ? '● READY' : '● NOT READY';
+      if (status.textContent !== label) status.textContent = label;
     });
 
     const waiting = Math.max(0, rows.length - readyCount);
-    summary.innerHTML = `<strong>DRIVERS IN ROOM</strong><span>${rows.length} player${rows.length === 1 ? '' : 's'} · <b class="summaryReady">${readyCount} ready</b> · <b class="summaryWaiting">${waiting} not ready</b></span>`;
+    const summaryHtml = `<strong>DRIVERS IN ROOM</strong><span>${rows.length} player${rows.length === 1 ? '' : 's'} · <b class="summaryReady">${readyCount} ready</b> · <b class="summaryWaiting">${waiting} not ready</b></span>`;
+    if (summary.innerHTML !== summaryHtml) summary.innerHTML = summaryHtml;
   }
 
-  const observer = new MutationObserver(() => requestAnimationFrame(decorate));
+  let framePending = false;
+  const schedule = () => {
+    if (framePending) return;
+    framePending = true;
+    requestAnimationFrame(() => {
+      framePending = false;
+      decorate();
+    });
+  };
+
+  const observer = new MutationObserver(schedule);
   observer.observe(players, { childList: true, subtree: true, characterData: true });
   addEventListener('load', decorate);
-  setInterval(decorate, 900);
+  setInterval(decorate, 1200);
   decorate();
 
   window.MidnightLobbyUI = { build: 'roster-r18' };
