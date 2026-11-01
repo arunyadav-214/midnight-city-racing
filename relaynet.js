@@ -40,6 +40,7 @@
 
       BROKERS.forEach((url,index)=>{
         let everConnected=false;
+        let initialErrorCounted=false;
         const client=mqtt.connect(url,{
           clientId:`mcr_${uid(14)}_${index}`,
           clean:true,
@@ -62,7 +63,8 @@
         client.on('offline',()=>{ this.connectedCount=this.clients.filter(c=>c.connected).length; });
         client.on('close',()=>{ this.connectedCount=this.clients.filter(c=>c.connected).length; });
         client.on('error',()=>{
-          if(!everConnected){
+          if(!everConnected&&!initialErrorCounted){
+            initialErrorCounted=true;
             this.initialSettled=Math.min(BROKERS.length,this.initialSettled+1);
             if(this.initialSettled>=BROKERS.length&&!this.ready){
               this.failHandlers.forEach(fn=>{try{fn()}catch(_){}});
@@ -191,6 +193,7 @@
       this._bridge=new BrokerBridge();
       this._hostRoom=id?.startsWith('midnight-city-racing-')?id.slice('midnight-city-racing-'.length):null;
       this._connections=new Map();
+      this._pendingConnections=[];
       this._opened=false;
 
       if(this._hostRoom) this._setupHost(this._hostRoom);
@@ -210,7 +213,16 @@
     on(name,fn){
       super.on(name,fn);
       if(name==='open'&&this._opened) setTimeout(()=>{if(!this.destroyed) fn(this.id);},0);
+      if(name==='connection'&&this._pendingConnections.length){
+        const pending=this._pendingConnections.splice(0);
+        pending.forEach(c=>setTimeout(()=>{if(!this.destroyed) fn(c);},0));
+      }
       return this;
+    }
+
+    _deliverConnection(conn){
+      if((this._events.get('connection')||[]).length) this._emit('connection',conn);
+      else this._pendingConnections.push(conn);
     }
 
     _setupHost(room){
@@ -219,13 +231,14 @@
         const guestId=msg?.guestId;
         if(!guestId||this.destroyed) return;
         let conn=this._connections.get(guestId);
+        if(conn?._closed){ this._connections.delete(guestId); conn=null; }
         if(!conn){
           conn=new RelayConnection(this,room,guestId,'host');
           this._connections.set(guestId,conn);
           this._bridge.subscribe(`${PREFIX}/${room}/from/${guestId}`,p=>conn._receive(p));
-          this._emit('connection',conn);
+          this._deliverConnection(conn);
         }
-        setTimeout(()=>this._bridge.publish(`${PREFIX}/${room}/to/${guestId}`,{sys:'open'}),40);
+        setTimeout(()=>this._bridge.publish(`${PREFIX}/${room}/to/${guestId}`,{sys:'open'}),60);
       });
     }
 
@@ -266,6 +279,7 @@
       this.destroyed=true;
       this._connections.forEach(c=>{try{c.close();}catch(_){}});
       this._connections.clear();
+      this._pendingConnections=[];
       this._bridge.close();
     }
   }
