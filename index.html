@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <meta name="theme-color" content="#eef1f4">
-  <title>Midnight City Racing · 3D Multiplayer & Bot Racing</title>
+  <title>Midnight City Racing · Straight Sprint</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="mapnav.css">
   <link rel="stylesheet" href="botmode.css">
@@ -12,17 +12,17 @@
 <body>
   <main class="wrap">
     <header class="top">
-      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · online multiplayer + solo bot racing</small></div></div>
+      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · straight sprint · friends or bots</small></div></div>
       <span class="pill" id="status">Ready</span>
     </header>
 
     <section id="home" class="view active">
       <div class="hero">
         <div class="panel intro">
-          <p class="eyebrow">3D STREET RACING</p>
-          <h1>Own the city streets.<br><span>Race friends or bots.</span></h1>
-          <p>Race through a colorful 3D city with wide black asphalt roads, longer straight sections, live navigation, engine sound, and up to six cars. Play online with friends or choose 1–5 computer-controlled rivals.</p>
-          <div class="chips"><span>2–6 online players</span><span>1–5 bots</span><span>Colorful city</span><span>Longer straights</span><span>Live minimap</span><span>Engine audio</span></div>
+          <p class="eyebrow">3D STRAIGHT-LINE RACING</p>
+          <h1>No turns.<br><span>Just race to the finish.</span></h1>
+          <p>Race down one long, wide black asphalt road through a colorful 3D city. No road turns, no laps—just accelerate, stay in your lane, and be the first across the finish line.</p>
+          <div class="chips"><span>One straight road</span><span>No turns</span><span>2–6 online players</span><span>1–5 bots</span><span>Live minimap</span><span>Engine audio</span></div>
         </div>
         <div class="panel">
           <div class="modeTabs">
@@ -51,7 +51,7 @@
                 <option value="5">5 bots · 6 cars total</option>
               </select>
             </label>
-            <p class="botHint">Bots drive the same road, pass the same checkpoints, appear on the live map, and race for the same finish line.</p>
+            <p class="botHint">Bots race straight down the same road and compete for the same finish line.</p>
             <button class="primary" type="submit">Start bot race</button>
           </form>
           <div id="error" class="error" hidden></div>
@@ -70,7 +70,7 @@
 
     <section id="race" class="view">
       <div class="raceTop">
-        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight City Sprint · up to 6 cars · 3 laps</strong></div>
+        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight Straight Sprint · up to 6 cars · first to finish wins</strong></div>
         <div class="raceActions"><button id="soundBtn" class="secondary compact" type="button">🔊 Sound on</button><button id="exitRace" class="secondary compact" type="button">Exit</button></div>
       </div>
       <div class="raceGrid">
@@ -79,11 +79,11 @@
             <canvas id="canvas"></canvas>
             <div class="cinematicBars" aria-hidden="true"></div>
             <div id="countdown" class="countdown">3</div>
-            <div class="cornerTag">MIDNIGHT CITY</div>
+            <div class="cornerTag">STRAIGHT SPRINT</div>
             <div class="minimapWrap" aria-label="Live race navigation map">
-              <div class="minimapHead"><span>RACE MAP</span><span>NAVIGATION</span></div>
+              <div class="minimapHead"><span>RACE MAP</span><span>FINISH →</span></div>
               <canvas id="minimap" width="240" height="156"></canvas>
-              <div class="mapKey"><span><i class="finishKey"></i><b>Finish</b></span><span>● next checkpoint</span></div>
+              <div class="mapKey"><span><i class="finishKey"></i><b>Finish</b></span><span>Drive straight →</span></div>
             </div>
           </div>
           <div class="touch">
@@ -93,7 +93,7 @@
           </div>
         </div>
         <aside class="hud">
-          <div><small>Your lap</small><strong id="lap">0 / 3</strong></div>
+          <div><small>Finish progress</small><strong id="lap">0%</strong></div>
           <div><small>Speed</small><strong id="speed">0</strong><span> km/h</span></div>
           <div><small>Position</small><strong id="position">1 / 6</strong></div>
           <div><small>Your driver</small><p><i class="you"></i><span id="youName">You</span></p></div>
@@ -103,7 +103,7 @@
     </section>
 
     <section id="finish" class="view">
-      <div class="panel finish"><div class="trophy">🏆</div><p class="eyebrow">RACE COMPLETE</p><h2 id="finishTitle">Winner!</h2><p id="finishText">The race is over.</p><div class="actions center"><button id="rematch" class="primary" type="button">Rematch</button><button id="homeBtn" class="secondary" type="button">Home</button></div></div>
+      <div class="panel finish"><div class="trophy">🏆</div><p class="eyebrow">STRAIGHT SPRINT COMPLETE</p><h2 id="finishTitle">Winner!</h2><p id="finishText">The race is over.</p><div class="actions center"><button id="rematch" class="primary" type="button">Rematch</button><button id="homeBtn" class="secondary" type="button">Home</button></div></div>
     </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
