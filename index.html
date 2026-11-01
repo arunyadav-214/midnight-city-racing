@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <meta name="theme-color" content="#0d1117">
-  <title>Midnight City Racing · Multiplayer Street Race</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#070b12">
+  <title>Midnight City Racing · 3D Multiplayer Street Race</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="wrap">
     <header class="top">
-      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>2-player online street racing</small></div></div>
+      <div class="brand"><span class="logo">🏁</span><div><strong>MIDNIGHT CITY RACING</strong><small>3D · 2-player online street racing</small></div></div>
       <span class="pill" id="status">Ready</span>
     </header>
 
     <section id="home" class="view active">
       <div class="hero">
         <div class="panel intro">
-          <p class="eyebrow">REAL-TIME MULTIPLAYER</p>
+          <p class="eyebrow">REAL-TIME 3D MULTIPLAYER</p>
           <h1>Own the city streets.<br><span>First to 3 laps wins.</span></h1>
-          <p>Create a room, send the code to your friend, and race through a GTA-inspired nighttime city circuit from two different phones or computers.</p>
-          <div class="chips"><span>Room codes</span><span>Live racing</span><span>City circuit</span><span>Touch controls</span></div>
+          <p>Race your friend through an original cinematic nighttime city circuit with a 3D chase camera, street lighting, engine sound, skid effects, and live synchronized racing.</p>
+          <div class="chips"><span>3D chase camera</span><span>Room codes</span><span>Engine audio</span><span>Touch controls</span></div>
         </div>
         <div class="panel">
           <div class="tabs"><button id="hostTab" class="tab active" type="button">Host race</button><button id="joinTab" class="tab" type="button">Join friend</button></div>
@@ -43,19 +43,27 @@
       <div class="panel">
         <div class="lobbyTop"><div><p class="eyebrow">RACE LOBBY</p><div class="code" id="roomCode">------</div></div><button id="leave" class="secondary" type="button">Leave</button></div>
         <div id="players" class="players"></div>
-        <p class="help"><strong>Controls:</strong> Arrow keys or WASD on computer. On phone, use the buttons below the track. The host can start when both players are ready.</p>
+        <p class="help"><strong>Controls:</strong> WASD or arrow keys. On phone, use the steering/gas/brake controls under the game. Sound starts after you interact with the page.</p>
         <div class="actions"><button id="ready" class="primary" type="button">I'm ready</button><button id="start" class="primary" type="button" hidden disabled>Start race</button></div>
       </div>
     </section>
 
     <section id="race" class="view">
-      <div class="raceTop"><div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>3 laps to win</strong></div><button id="exitRace" class="secondary" type="button">Exit</button></div>
+      <div class="raceTop">
+        <div><p class="eyebrow">ROOM <span id="raceCode">------</span></p><strong>Midnight City Sprint · 3 laps</strong></div>
+        <div class="raceActions"><button id="soundBtn" class="secondary compact" type="button">🔊 Sound on</button><button id="exitRace" class="secondary compact" type="button">Exit</button></div>
+      </div>
       <div class="raceGrid">
         <div class="trackCard">
-          <div class="canvasWrap"><canvas id="canvas" width="1000" height="650"></canvas><div id="countdown" class="countdown">3</div></div>
+          <div class="canvasWrap">
+            <canvas id="canvas"></canvas>
+            <div class="cinematicBars" aria-hidden="true"></div>
+            <div id="countdown" class="countdown">3</div>
+            <div class="cornerTag">MIDNIGHT CITY</div>
+          </div>
           <div class="touch">
             <button data-key="left" type="button">◀</button>
-            <div class="touchMid"><button data-key="up" class="gas" type="button">▲</button><button data-key="down" class="brake" type="button">▼</button></div>
+            <div class="touchMid"><button data-key="up" class="gas" type="button">▲ GAS</button><button data-key="down" class="brake" type="button">▼ BRAKE</button></div>
             <button data-key="right" type="button">▶</button>
           </div>
         </div>
@@ -72,6 +80,7 @@
       <div class="panel finish"><div class="trophy">🏆</div><p class="eyebrow">RACE COMPLETE</p><h2 id="finishTitle">Winner!</h2><p id="finishText">The race is over.</p><div class="actions center"><button id="rematch" class="primary" type="button">Rematch</button><button id="homeBtn" class="secondary" type="button">Home</button></div></div>
     </section>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="race.js"></script>
 </body>
