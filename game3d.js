@@ -93,7 +93,7 @@
   };
 
   function nextId(){
-    for(let i=2;i<=MAX_PLAYERS;i++) if(!world.players['p'+i]) return 'p'+i;
+    for(let i=2;i<=MAX_PLAYERS;i++) if(!world.players['p'+i] && !conns.has('p'+i)) return 'p'+i;
     return null;
   }
 
@@ -193,7 +193,7 @@
   }
 
   function connectedPlayers(){ return world ? Object.values(world.players).filter(p=>p.connected!==false) : []; }
-  function allReady(){ const ps=connectedPlayers(); return ps.length>=2 && ps.every(p=>p.ready); }
+  function allReady(){ const ps=connectedPlayers(); return ps.length>=2 && (!isHost || ps.length===conns.size+1) && ps.every(p=>p.ready); }
 
   function updateLobby(){
     if(!world) return;
