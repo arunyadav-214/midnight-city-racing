@@ -2,14 +2,14 @@
   if (!window.Midnight3D?.track) return;
   const track = Midnight3D.track;
 
-  // About three minutes at full racing speed: one road, zero turns.
+  // About 1 minute 30 seconds at full racing speed: one road, zero turns.
   track.startX = 115;
-  track.finishX = 60000;
+  track.finishX = 30000;
   track.roadMinY = 205;
   track.roadMaxY = 445;
 
   track.roads.splice(0, track.roads.length,
-    {x:60, y:205, w:60020, h:240}
+    {x:60, y:205, w:30020, h:240}
   );
 
   // Lane guides are rendered efficiently by scene3d.js from these y positions.
