@@ -6,18 +6,11 @@
   const W = mini.width;
   const H = mini.height;
   const PAD = 10;
+  const FINISH_X = 900;
   const COLORS = {
     p1:'#ffd23f', p2:'#45d6ff', p3:'#ff5f7e',
     p4:'#70ff9c', p5:'#c58cff', p6:'#ff9b45'
   };
-  const targets = [
-    {x:825,y:547,label:'CP 1'},
-    {x:823,y:220,label:'CP 2'},
-    {x:545,y:165,label:'CP 3'},
-    {x:240,y:295,label:'CP 4'},
-    {x:240,y:547,label:'CP 5'},
-    {x:545,y:547,label:'FINISH'}
-  ];
 
   const sx = x => PAD + x * (W - PAD * 2) / 1000;
   const sy = y => PAD + y * (H - PAD * 2) / 650;
@@ -33,7 +26,7 @@
   }
 
   function drawFinish(){
-    const x=sx(545), y1=sy(472), y2=sy(622);
+    const x=sx(FINISH_X), y1=sy(205), y2=sy(445);
     const cell=4;
     for(let y=y1,n=0;y<y2;y+=cell,n++){
       for(let col=0;col<2;col++){
@@ -43,7 +36,7 @@
     }
     ctx.fillStyle='#ffffff';
     ctx.font='700 9px system-ui';
-    ctx.fillText('FINISH',x+7,Math.max(12,y1-3));
+    ctx.fillText('FINISH',Math.min(W-42,x+7),Math.max(12,y1-3));
   }
 
   function drawPlayer(p,id,isMe){
@@ -66,7 +59,7 @@
     if(isMe){
       ctx.fillStyle='#ffffff';
       ctx.font='800 9px system-ui';
-      ctx.fillText('YOU',x+7,y-7);
+      ctx.fillText('YOU',Math.min(W-28,x+7),Math.max(10,y-7));
     }
   }
 
@@ -77,8 +70,8 @@
     ctx.fillStyle='rgba(4,7,11,.94)';
     roundedRect(0,0,W,H,12);ctx.fill();
 
-    ctx.fillStyle='#20242a';
-    ctx.strokeStyle='#666d76';
+    ctx.fillStyle='#171a1f';
+    ctx.strokeStyle='#737a84';
     ctx.lineWidth=1.2;
     track.roads.forEach(r=>{
       const x=sx(r.x),y=sy(r.y),w=r.w*(W-PAD*2)/1000,h=r.h*(H-PAD*2)/650;
@@ -90,8 +83,7 @@
 
     const me=world.players[myId];
     if(me){
-      const target=targets[Math.min(me.cp||0,targets.length-1)];
-      const mx=sx(me.x), my=sy(me.y), tx=sx(target.x), ty=sy(target.y);
+      const mx=sx(me.x), my=sy(me.y), tx=sx(FINISH_X), ty=sy(me.y);
       ctx.save();
       ctx.setLineDash([5,4]);
       ctx.strokeStyle='#ffd23f';
@@ -99,10 +91,10 @@
       ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(tx,ty);ctx.stroke();
       ctx.setLineDash([]);
       ctx.beginPath();ctx.arc(tx,ty,5,0,Math.PI*2);
-      ctx.fillStyle=target.label==='FINISH'?'#ffffff':'#ffd23f';ctx.fill();
+      ctx.fillStyle='#ffffff';ctx.fill();
       ctx.strokeStyle='#111318';ctx.stroke();
       ctx.fillStyle='#ffffff';ctx.font='700 9px system-ui';
-      ctx.fillText(target.label,Math.min(W-44,tx+7),Math.max(11,ty-6));
+      ctx.fillText('FINISH',Math.min(W-44,tx-35),Math.max(11,ty-7));
       ctx.restore();
     }
 
@@ -110,7 +102,7 @@
 
     ctx.fillStyle='rgba(255,255,255,.75)';
     ctx.font='700 9px system-ui';
-    ctx.fillText('LIVE NAVIGATION',10,H-8);
+    ctx.fillText('STRAIGHT SPRINT',10,H-8);
   }
 
   const originalUpdate = Midnight3D.update;
