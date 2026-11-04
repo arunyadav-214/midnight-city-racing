@@ -132,90 +132,193 @@
     s.scale.set(7.4,2,1);s.position.set(0,3.35,0);s.renderOrder=20;return s;
   }
 
-  function car(color,name,modelId='falcon-gt'){
+  function car(color,name,modelId='vortex-r'){
     const spec=window.MidnightGarage?.get?.(modelId)||{
-      id:'falcon-gt',paint:color,accent:'#fff1aa',
-      roof:1.62,roofX:-.35,hood:.93,tail:1.04,width:2.08,wheel:.46,spoiler:0,stripe:1,lightbar:0
+      id:'vortex-r',paint:'#e32436',accent:'#ffd7d9',
+      roof:1.43,roofX:-.42,hood:.84,tail:1.13,width:2.26,wheel:.48,spoiler:2,stripe:1,lightbar:0
     };
-    const g=new THREE.Group();
-    const body=mat(spec.paint||color,.28,.54),trim=mat(0x101824,.57,.27),
-      glass=mat(0x102f43,.16,.56),tire=mat(0x080b10,.98,.01),
-      rim=mat(0xc9d7e0,.20,.85),accent=mat(spec.accent||0xffffff,.33,.30),
-      lamp=mat(0xd9f8ff,.24,.06,0xa4e9ff),red=mat(0xff365a,.27,.08,0xff1b2f);
-    const add=(geo,m,x,y,z)=>{
-      const o=new THREE.Mesh(geo,m);
-      o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;g.add(o);return o;
+    const g=new THREE.Group(),half=spec.width*.5,baseHeight=.48;
+    const paint=new THREE.MeshPhysicalMaterial({
+      color:spec.paint||color,metalness:.64,roughness:.24,
+      clearcoat:.96,clearcoatRoughness:.12,side:THREE.DoubleSide
+    });
+    const glass=new THREE.MeshPhysicalMaterial({
+      color:0x132a3c,metalness:.26,roughness:.10,clearcoat:1,
+      transparent:true,opacity:.97,side:THREE.DoubleSide
+    });
+    const trim=new THREE.MeshStandardMaterial({color:0x121720,metalness:.34,roughness:.47});
+    const carbon=new THREE.MeshStandardMaterial({color:0x171d24,metalness:.34,roughness:.49});
+    const grille=new THREE.MeshStandardMaterial({color:0x060b12,metalness:.22,roughness:.64});
+    const tire=new THREE.MeshStandardMaterial({color:0x0a0d12,metalness:.04,roughness:.92});
+    const alloys=new THREE.MeshStandardMaterial({color:0xb7c2ca,metalness:.89,roughness:.24});
+    const darkAlloy=new THREE.MeshStandardMaterial({color:0x424c58,metalness:.82,roughness:.33});
+    const accents=new THREE.MeshStandardMaterial({color:spec.accent||0xffffff,metalness:.68,roughness:.22});
+    const headlight=new THREE.MeshBasicMaterial({color:0xc7f1ff,transparent:true,opacity:.92});
+    const taillight=new THREE.MeshBasicMaterial({color:0xff314d});
+    const add=(geometry,material,x=0,y=0,z=0)=>{
+      const mesh=new THREE.Mesh(geometry,material);
+      mesh.position.set(x,y,z);
+      mesh.castShadow=true;mesh.receiveShadow=true;
+      g.add(mesh);return mesh;
     };
-    const half=spec.width*.5,rs=(spec.roofX||-.3)-.91,re=(spec.roofX||-.3)+.70;
-    // Beveled wedge silhouette instead of the old rectangular car body.
-    const outline=new THREE.Shape();
-    outline.moveTo(-2.36,.47);outline.lineTo(-2.36,.86);
-    outline.lineTo(-1.94,spec.tail);outline.lineTo(rs-.24,1.12);
-    outline.lineTo(rs,spec.roof);outline.lineTo(re,spec.roof-.035);
-    outline.lineTo(re+.53,1.10);outline.lineTo(1.85,spec.hood);
-    outline.lineTo(2.41,.73);outline.lineTo(2.41,.46);outline.closePath();
-    const chassis=new THREE.ExtrudeGeometry(outline,{
-      depth:spec.width*.84,bevelEnabled:true,bevelThickness:.055,
-      bevelSize:.065,bevelSegments:1,steps:1,curveSegments:1
-    });
-    chassis.translate(0,0,-spec.width*.42);
-    add(chassis,body,0,0,0);
-    // Windshield and wraparound side glass have a distinct roof profile per model.
-    const windowShape=new THREE.Shape();
-    windowShape.moveTo(rs+.17,1.17);
-    windowShape.lineTo(rs+.22,spec.roof-.10);
-    windowShape.lineTo(re-.12,spec.roof-.12);
-    windowShape.lineTo(re+.33,1.17);
-    windowShape.closePath();
-    const windowGeo=new THREE.ExtrudeGeometry(windowShape,{
-      depth:spec.width*.76,bevelEnabled:false,steps:1
-    });
-    windowGeo.translate(0,0,-spec.width*.38);
-    add(windowGeo,glass,0,0,0);
-    add(new THREE.BoxGeometry(4.40,.17,spec.width*.85),trim,0,.51,0);
-    // Side skirts and aerodynamic rear diffuser.
+    const box=(w,h,d,m,x,y,z)=>add(new THREE.BoxGeometry(w,h,d),m,x,y,z);
+    const line=(points,m)=>{
+      const geometry=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p)));
+      const obj=new THREE.Line(geometry,m);g.add(obj);return obj;
+    };
+    // A smooth multi-section loft gives curved fenders, sculpted nose and tapered tail.
+    // It is generated locally, with no external 3D asset requests on phones.
+    const cat=(a,b,d,e,t)=>.5*(2*b+(-a+d)*t+(2*a-5*b+4*d-e)*t*t+(-a+3*b-3*d+e)*t*t*t);
+    function loft(stations,profile,material){
+      const rings=[];
+      for(let i=0;i<stations.length-1;i++){
+        for(let j=0;j<=5;j++){
+          if(i&&j===0)continue;
+          const t=j/5, prev=stations[Math.max(0,i-1)],a=stations[i],
+            b=stations[i+1],next=stations[Math.min(stations.length-1,i+2)];
+          const s={};
+          ['x','w','y'].forEach(k=>s[k]=cat(prev[k],a[k],b[k],next[k],t));
+          s.w=Math.max(.13,s.w);
+          rings.push(profile(s));
+        }
+      }
+      const vertexCount=rings[0].length,coords=[],index=[];
+      rings.forEach(r=>r.forEach(v=>coords.push(v[0],v[1],v[2])));
+      for(let i=0;i<rings.length-1;i++){
+        for(let j=0;j<vertexCount;j++){
+          const nj=(j+1)%vertexCount,a=i*vertexCount+j,b=i*vertexCount+nj;
+          const c=(i+1)*vertexCount+j,d=(i+1)*vertexCount+nj;
+          index.push(a,b,c,b,d,c);
+        }
+      }
+      const geom=new THREE.BufferGeometry();
+      geom.setAttribute('position',new THREE.Float32BufferAttribute(coords,3));
+      geom.setIndex(index);geom.computeVertexNormals();
+      return add(geom,material);
+    }
+    const w=half,tail=spec.tail,hood=spec.hood;
+    const bodyStations=[
+      {x:-2.45,w:w*.77,y:.73},
+      {x:-2.32,w:w*.93,y:.86},
+      {x:-1.99,w:w*.99,y:tail},
+      {x:-1.55,w:w,y:Math.max(.98,tail-.07)},
+      {x:-.90,w:w*.99,y:1.08},
+      {x:-.16,w:w*.98,y:1.06},
+      {x:.68,w:w*.98,y:.99},
+      {x:1.27,w:w*.99,y:.95},
+      {x:1.82,w:w*.94,y:hood+.025},
+      {x:2.30,w:w*.85,y:.74},
+      {x:2.46,w:w*.69,y:.67}
+    ];
+    loft(bodyStations,s=>{
+      const x=s.x,y=s.y,z=s.w;
+      return [
+        [x,.44,-z*.84],[x,.54,-z*.96],[x,.68,-z],
+        [x,y-.10,-z*.98],[x,y+.005,-z*.82],
+        [x,y+.065,-z*.48],[x,y+.087,0],
+        [x,y+.065,z*.48],[x,y+.005,z*.82],
+        [x,y-.10,z*.98],[x,.68,z],[x,.54,z*.96],
+        [x,.44,z*.84],[x,.40,0]
+      ];
+    },paint);
+    // Separate curved panoramic canopy with raised roof and tinted glass.
+    const cx=spec.roofX||-.35,roof=spec.roof;
+    const cabinStations=[
+      {x:cx-1.21,w:w*.50,y:1.17},
+      {x:cx-.82,w:w*.65,y:roof-.13},
+      {x:cx-.48,w:w*.70,y:roof},
+      {x:cx+.26,w:w*.68,y:roof-.01},
+      {x:cx+.59,w:w*.62,y:roof-.10},
+      {x:cx+1.02,w:w*.46,y:1.12}
+    ];
+    loft(cabinStations,s=>{
+      const x=s.x,y=s.y,z=s.w;
+      const base=Math.min(1.17,y-.025);
+      return [
+        [x,base,-z],[x,base+.11,-z],
+        [x,y-.03,-z*.94],[x,y+.045,-z*.73],
+        [x,y+.088,0],[x,y+.045,z*.73],
+        [x,y-.03,z*.94],[x,base+.11,z],
+        [x,base,z],[x,base-.04,0]
+      ];
+    },glass);
+    const roofLine=box(.84,.036,w*1.05,paint,cx-.12,roof+.077,0);
+    roofLine.castShadow=false;
+    // Delicate front splitter, rocker skirts, front intakes and diffuser.
+    box(.34,.105,spec.width*.85,carbon,2.28,.43,0);
+    box(.44,.11,spec.width*.89,carbon,-2.30,.43,0);
+    box(.082,.19,spec.width*.59,grille,2.446,.57,0);
+    box(.082,.13,spec.width*.72,grille,-2.425,.56,0);
     [-1,1].forEach(side=>{
-      add(new THREE.BoxGeometry(2.55,.17,.11),trim,-.03,.52,side*(half-.04));
-      add(new THREE.BoxGeometry(.66,.20,.055),trim,-.70,.83,side*(half+.015));
-    });
-    add(new THREE.BoxGeometry(.20,.24,spec.width*.92),trim,2.38,.49,0);
-    add(new THREE.BoxGeometry(.30,.30,spec.width*.91),trim,-2.35,.51,0);
-    // Sport tires, metallic alloy rims and brake hubs.
-    [-1.44,1.44].forEach(x=>[-1,1].forEach(side=>{
-      const z=side*(half+.03),rad=spec.wheel||.46;
-      const wheel=add(new THREE.CylinderGeometry(rad,rad,.35,20),tire,x,.48,z);
-      wheel.rotation.x=Math.PI/2;
-      const alloy=add(new THREE.CylinderGeometry(rad*.66,rad*.66,.37,12),rim,x,.48,side*(half+.10));
-      alloy.rotation.x=Math.PI/2;
-      const hub=add(new THREE.CylinderGeometry(rad*.23,rad*.23,.39,12),trim,x,.48,side*(half+.11));
-      hub.rotation.x=Math.PI/2;
-    }));
-    [-1,1].forEach(side=>{
-      const z=side*spec.width*.30;
-      add(new THREE.BoxGeometry(.10,.10,.50),lamp,2.39,.78,z);
-      add(new THREE.BoxGeometry(.10,.13,.52),red,-2.38,.84,z);
-      add(new THREE.BoxGeometry(.20,.10,.36),trim,1.68,.78,side*(half-.1));
-      add(new THREE.BoxGeometry(.17,.07,.39),trim,-2.25,.65,side*(half-.1));
+      box(2.90,.14,.10,trim,-.09,.51,side*(w-.015));
+      box(.22,.14,.34,grille,2.385,.62,side*w*.70);
+      box(.23,.15,.34,grille,-2.365,.63,side*w*.72);
+      // Single-line side panel/door seams read as real car surfacing.
+      const z=side*(w*.97+.009);
+      const seam=new THREE.LineBasicMaterial({color:0x1a202a,transparent:true,opacity:.50});
+      line([[cx+.58,1.02,z],[cx+.60,.70,z],[cx+.43,.58,z]],seam);
+      line([[cx-1.05,1.00,z],[cx-.98,.66,z]],seam);
+      box(.30,.045,.028,alloys,cx-.28,.96,side*w*.989);
+      // Mirrors: body color shell plus narrow black mount and reflective face.
+      box(.21,.075,.24,trim,cx+.56,1.20,side*w*.75);
+      const mirror=add(new THREE.SphereGeometry(.16,12,8),paint,cx+.63,1.23,side*(w*.84));
+      mirror.scale.set(1,.55,1.25);
+      box(.045,.09,.14,alloys,cx+.53,1.24,side*(w*.99));
+      // Angular LED headlights, inset and brake lamps.
+      const rz=side*(w*.68);
+      box(.085,.105,.48,trim,2.432,.79,rz);
+      box(.090,.035,.39,headlight,2.478,.823,rz);
+      box(.083,.115,.42,trim,-2.425,.88,rz);
+      box(.090,.060,.34,taillight,-2.475,.90,rz);
+      box(.49,.036,.038,accents,1.74,hood+.085,side*w*.55);
     });
     if(spec.lightbar){
-      add(new THREE.BoxGeometry(.075,.055,spec.width*.79),lamp,2.43,.85,0);
-      add(new THREE.BoxGeometry(.075,.08,spec.width*.80),red,-2.40,.84,0);
+      box(.085,.048,spec.width*.78,headlight,2.478,.79,0);
+      box(.085,.061,spec.width*.72,taillight,-2.470,.89,0);
     }
     if(spec.stripe){
-      add(new THREE.BoxGeometry(1.10,.036,.11),accent,1.25,spec.hood+.043,0);
-      add(new THREE.BoxGeometry(.82,.036,.10),accent,-1.85,spec.tail+.044,0);
+      box(.98,.020,.065,accents,1.26,hood+.110,0);
+      box(.74,.018,.067,accents,-1.86,tail+.073,0);
     }
+    // Detailed wheel package: recessed brakes, polished rims, 5-spoke alloy wheels.
+    [-1.47,1.47].forEach(x=>[-1,1].forEach(side=>{
+      const radius=spec.wheel||.48;
+      const wheelZ=side*(w+.055);
+      const wheel=add(new THREE.CylinderGeometry(radius,radius,.36,28,1),tire,x,.49,wheelZ);
+      wheel.rotation.x=Math.PI/2;
+      const brake=add(new THREE.CylinderGeometry(radius*.74,radius*.74,.38,24),darkAlloy,x,.49,side*(w+.095));
+      brake.rotation.x=Math.PI/2;
+      const disc=add(new THREE.CylinderGeometry(radius*.64,radius*.64,.39,24),alloys,x,.49,side*(w+.115));
+      disc.rotation.x=Math.PI/2;
+      const faceZ=side*(w+.315);
+      for(let k=0;k<5;k++){
+        const spoke=box(radius*.18,radius*1.00,.036,darkAlloy,x,.49,faceZ);
+        spoke.rotation.z=k*Math.PI*2/5;
+      }
+      const hub=add(new THREE.CylinderGeometry(radius*.21,radius*.21,.405,12),alloys,x,.49,side*(w+.12));
+      hub.rotation.x=Math.PI/2;
+    }));
     if(spec.spoiler){
-      [-1,1].forEach(side=>add(new THREE.BoxGeometry(.10,.49,.10),trim,-2.06,1.24,side*half*.63));
-      const wingWidth=spec.width+(spec.spoiler===2?.36:.08);
-      add(new THREE.BoxGeometry(.53,.115,wingWidth),trim,-2.05,1.50,0);
-      add(new THREE.BoxGeometry(.33,.035,wingWidth*.93),accent,-2.05,1.58,0);
+      [-1,1].forEach(side=>box(.12,.36,.10,carbon,-2.08,1.24,side*w*.67));
+      const wingW=spec.width+(spec.spoiler===2?.27:.04);
+      box(.53,.075,wingW,carbon,-2.08,1.48,0);
+      box(.18,.024,wingW*.87,accents,-2.04,1.528,0);
     }
-    // Exhaust tips, with blue flames only while a car uses its air boost.
+    if(spec.id==='titan-s'){
+      // Sculpted muscle-car hood intake.
+      box(.52,.075,.67,carbon,1.08,hood+.18,0);
+      box(.065,.09,.50,grille,1.34,hood+.19,0);
+    }else if(spec.id==='apex-z'){
+      [-1,1].forEach(side=>box(.49,.034,.25,carbon,1.27,hood+.095,side*w*.52));
+    }else if(spec.id==='vortex-r'){
+      [-1,1].forEach(side=>box(.39,.055,.22,carbon,-1.38,tail+.092,side*w*.53));
+    }
+    // Twin polished exhaust outlets; their turbo flames remain tied to existing boost state.
     const flames=[];
     [-1,1].forEach(side=>{
-      add(new THREE.CylinderGeometry(.13,.13,.14,10),rim,-2.43,.57,side*.57).rotation.z=Math.PI/2;
-      const flame=add(new THREE.ConeGeometry(.16,.72,9),
+      const tip=add(new THREE.CylinderGeometry(.115,.115,.16,14),alloys,-2.47,.58,side*.57);
+      tip.rotation.z=Math.PI/2;
+      const flame=add(new THREE.ConeGeometry(.13,.60,9),
         new THREE.MeshBasicMaterial({color:0x2fd4ff,transparent:true,opacity:.84,depthWrite:false}),
         -2.78,.59,side*.57);
       flame.rotation.z=Math.PI/2;flame.visible=false;flames.push(flame);
@@ -240,7 +343,7 @@
 
   function ensureCars(players){
     Object.entries(players).forEach(([id,p])=>{
-      const model=window.MidnightGarage?.get?.(p.car)?.id||'falcon-gt';
+      const model=window.MidnightGarage?.get?.(p.car)?.id||'vortex-r';
       if(cars[id]&&(cars[id].userData.model!==model||cars[id].userData.driverName!==p.name)){
         const old=cars[id];sc.remove(old);
         old.traverse(o=>{
