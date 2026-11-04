@@ -12,7 +12,7 @@
       const wiggle = (seed % 3) * 35;
       track.buildings.push(
         { x: x + 120, y: 22 + wiggle * .18, w: 115 + (seed % 4) * 18, h: 120 + (seed % 3) * 14, l: `CITY-${seed}-N` },
-        { x: x + 760, y: 482 + (seed % 2) * 10, w: 120 + (seed % 5) * 15, h: 112 + (seed % 4) * 12, l: `CITY-${seed}-S` }
+        { x: x + 760, y: 530 + (seed % 2) * 10, w: 120 + (seed % 5) * 15, h: 112 + (seed % 4) * 12, l: `CITY-${seed}-S` }
       );
       seed++;
     }
