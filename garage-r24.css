@@ -27,3 +27,10 @@
 .garagePreview svg{filter:drop-shadow(0 3px 4px rgba(0,0,0,.40))}
 @media(max-width:760px){.garageCard:first-child .garagePreview{height:76px}}
 @media(max-width:400px){.garageCard:first-child .garagePreview{height:68px}}
+
+/* BMW M4 Competition: sapphire-blue showroom card, after the featured red Vortex. */
+.garageCard[data-car="bmw-m4"]{background:linear-gradient(145deg,#102744,#0b1728 72%);border-color:rgba(86,153,219,.54)}
+.garageCard[data-car="bmw-m4"] .garagePreview{background:radial-gradient(ellipse at 50% 100%,#244f7d,#08182c 77%)}
+.garageCard[data-car="bmw-m4"] .garageName{letter-spacing:-.015em}
+.garageCard[data-car="bmw-m4"].selected{border-color:#81bfff;box-shadow:0 0 0 1px rgba(108,175,251,.38),inset 0 0 18px rgba(76,145,235,.09)}
+.garageCard[data-car="bmw-m4"].selected .garageSelected{color:#a8d8ff}
