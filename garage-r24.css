@@ -19,14 +19,26 @@
 @media(max-width:760px){.sportsGarage{margin-top:10px;padding:9px}.garageCards{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.garageCard{min-height:105px;padding:6px}.garagePreview{height:56px}.garageName{font-size:11px}.garageHeading strong{font-size:11px}.garageChoice{font-size:9px}}
 @media(max-width:400px){.garageCards{grid-template-columns:repeat(2,minmax(0,1fr))}.garagePreview{height:47px}.garageCard{min-height:98px}.garageHeading{align-items:flex-start;flex-direction:column}.garageChoice{max-width:none}}
 
-/* The red Vortex R is featured first; all remaining cars have equal-performance choice. */
-.garageCard:first-child{grid-column:span 2;border-color:rgba(238,68,83,.52);background:linear-gradient(130deg,#261821,#0b1727 65%)}
-.garageCard:first-child .garagePreview{height:96px;background:radial-gradient(ellipse at 50% 100%,#573042,#0a1423 75%)}
-.garageCard:first-child .garageName{font-size:14px}
-.garageCard.selected{box-shadow:0 0 0 1px rgba(239,68,86,.26),inset 0 0 15px rgba(255,90,103,.055)}
+/* Equal-size sports car cards, arranged as three columns and two rows. */
+.garageCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:8px;align-items:stretch}
+.garageCard,.garageCard:first-child{grid-column:auto;min-width:0;min-height:130px;height:100%;box-sizing:border-box}
+.garagePreview,.garageCard:first-child .garagePreview{height:65px;flex:0 0 65px}
+.garageCard .garageName,.garageCard:first-child .garageName{font-size:12px;white-space:normal;overflow:hidden;line-height:1.2;min-height:29px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .garagePreview svg{filter:drop-shadow(0 3px 4px rgba(0,0,0,.40))}
-@media(max-width:760px){.garageCard:first-child .garagePreview{height:76px}}
-@media(max-width:400px){.garageCard:first-child .garagePreview{height:68px}}
+@media(max-width:760px){
+ .garageCards{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .garageCard,.garageCard:first-child{min-height:112px;padding:5px}
+ .garagePreview,.garageCard:first-child .garagePreview{height:48px;flex-basis:48px}
+ .garageCard .garageName,.garageCard:first-child .garageName{font-size:10px;min-height:25px}
+ .garageType{font-size:8px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+ .garageSelected{font-size:8px}
+}
+@media(max-width:400px){
+ .garageCards{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .garageCard,.garageCard:first-child{min-height:106px;padding:4px}
+ .garagePreview,.garageCard:first-child .garagePreview{height:40px;flex-basis:40px}
+ .garageCard .garageName,.garageCard:first-child .garageName{font-size:9px;min-height:23px}
+}
 
 /* BMW M4 Competition: sapphire-blue showroom card, after the featured red Vortex. */
 .garageCard[data-car="bmw-m4"]{background:linear-gradient(145deg,#102744,#0b1728 72%);border-color:rgba(86,153,219,.54)}
