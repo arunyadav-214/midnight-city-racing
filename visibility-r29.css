@@ -1,0 +1,32 @@
+/* Clear Road View r29 — reduce nonessential overlays without hiding driving controls. */
+#race .minimapWrap{
+  width:min(185px,26%)!important;
+  left:8px!important;
+  bottom:8px!important;
+  padding:6px!important;
+  background:rgba(5,8,12,.72)!important;
+  border-color:rgba(255,255,255,.13)!important;
+  box-shadow:0 6px 16px rgba(0,0,0,.26)!important;
+}
+#race .minimapHead{font-size:8px!important;margin-bottom:3px!important;}
+#race .mapKey{font-size:8px;margin:3px 0 0;}
+#race .boostMeter{
+  width:142px;
+  right:7px;
+  bottom:7px;
+  padding:6px 8px;
+  background:rgba(3,8,14,.71);
+}
+#race .cornerTag{font-size:9px;opacity:.62;letter-spacing:.07em;}
+#race .cinematicBars:before,#race .cinematicBars:after{height:1.3%;background:rgba(0,0,0,.42);}
+@media(max-width:700px){
+  #race .minimapWrap{width:108px!important;left:4px!important;bottom:4px!important;padding:4px!important;background:rgba(5,8,12,.65)!important;}
+  #race .minimapHead{font-size:7px!important;letter-spacing:0!important;}
+  #race .minimapWrap .mapKey{display:none;}
+  #race .boostMeter{width:108px;right:4px;bottom:4px;padding:4px 6px;background:rgba(3,8,14,.66);}
+  #race .boostMeterHead{font-size:7px;letter-spacing:0;gap:3px;}
+  #race .boostBar{height:4px;margin-top:3px;}
+}
+@media(max-width:700px) and (orientation:landscape) and (max-height:520px){
+  #race .minimapWrap{width:96px!important;bottom:62px!important;}
+}
