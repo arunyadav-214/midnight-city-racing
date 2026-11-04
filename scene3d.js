@@ -125,11 +125,21 @@
   }
 
   function nameTag(text,color){
-    const c=document.createElement('canvas');c.width=320;c.height=86;const x=c.getContext('2d');
-    x.fillStyle='rgba(3,7,12,.82)';x.beginPath();x.roundRect(4,4,312,78,18);x.fill();
-    x.strokeStyle=color;x.lineWidth=5;x.stroke();x.fillStyle='#fff';x.font='800 34px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillText(String(text||'Driver').slice(0,18),160,44);
-    const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
-    s.scale.set(7.4,2,1);s.position.set(0,3.35,0);s.renderOrder=20;return s;
+    // Compact, depth-tested tag. Large unoccluded name plates previously hid the road.
+    const c=document.createElement('canvas');c.width=256;c.height=58;
+    const x=c.getContext('2d');
+    x.fillStyle='rgba(3,7,12,.64)';
+    x.beginPath();x.roundRect(3,3,250,52,12);x.fill();
+    x.strokeStyle=color;x.lineWidth=2.3;x.stroke();
+    x.fillStyle='#f7fbff';x.font='800 23px system-ui';x.textAlign='center';x.textBaseline='middle';
+    x.fillText(String(text||'Driver').slice(0,18),128,30,230);
+    const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({
+      map:tex,transparent:true,opacity:.91,depthTest:true,depthWrite:false
+    }));
+    s.scale.set(3.25,.74,1);
+    s.position.set(0,2.46,0);
+    return s;
   }
 
   function car(color,name,modelId='vortex-r'){
@@ -366,7 +376,9 @@
       flame.rotation.z=Math.PI/2;flame.visible=false;flames.push(flame);
     });
     g.userData.model=spec.id;g.userData.driverName=name;g.userData.flames=flames;
-    g.add(nameTag(name,spec.paint||color));
+    const label=nameTag(name,spec.paint||color);
+    g.userData.nameSprite=label;
+    g.add(label);
     return g;
   }
 
@@ -469,8 +481,8 @@
   function init(c){
     if(ready)return true;canvas=c;if(typeof THREE==='undefined')return false;
     r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});r.setPixelRatio(Math.min(devicePixelRatio||1,1.75));r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.1;
-    sc=new THREE.Scene();sc.background=new THREE.Color(0x879caf);sc.fog=new THREE.Fog(0x879caf,100,385);
-    cam=new THREE.PerspectiveCamera(65,16/9,.1,500);cam.position.set(0,8,14);look=new THREE.Vector3();
+    sc=new THREE.Scene();sc.background=new THREE.Color(0x879caf);sc.fog=new THREE.Fog(0x879caf,140,465);
+    cam=new THREE.PerspectiveCamera(72,16/9,.1,600);cam.position.set(0,8,14);look=new THREE.Vector3();
     sc.add(new THREE.HemisphereLight(0xddeaff,0x55483d,1.65));const sunLight=new THREE.DirectionalLight(0xffe2bf,2.5);sunLight.position.set(-25,55,20);sunLight.castShadow=true;sc.add(sunLight);
     const len=((T.finishX||900)-(T.startX||115)+1800)*S,center=wp(((T.finishX||900)+(T.startX||115))/2,325);
     const grd=new THREE.Mesh(new THREE.PlaneGeometry(len,110),mat(0x56614e,1));grd.rotation.x=-Math.PI/2;grd.position.set(center.x,-.06,0);grd.receiveShadow=true;sc.add(grd);
@@ -488,14 +500,32 @@
     if(!ready||!world?.players)return;ensureCars(world.players);syncTraffic(world.traffic||[]);const frameNow=performance.now(),dt=Math.min(.04,(frameNow-lastFrame)/1000);lastFrame=frameNow;updateEffects(dt);updateWalkers(dt,frameNow);const now=Date.now();
     Object.entries(world.players).forEach(([id,s])=>{
       const m=cars[id],p=wp(s.x,s.y),power=Math.max(.25,Math.min(1,s.crashPower||.5)),air=boostHeight(s,now);m.position.set(p.x,.05+air,p.z);m.rotation.y=-s.a;
+      // Don't cover the player's car or road with their own name; only label nearby rivals.
+      const nameSprite=m.userData.nameSprite,self=world.players[myId];
+      if(nameSprite)nameSprite.visible=(id!==myId)&&!!self&&s.x>self.x-450&&s.x<self.x+1500;
       m.userData.flames?.forEach((f,i)=>{f.visible=air>.15;if(f.visible)f.scale.y=.9+Math.sin(now*.04+i)*.15;});
       if((s.crashSeq||0)!==(lastCrash[id]||0)){lastCrash[id]=s.crashSeq||0;if(s.crashSeq)spawnImpact(m.position.clone(),power);}
       if(air>0){const total=Math.max(1,(s.boostUntil||0)-(s.boostStart||0)),t=Math.max(0,Math.min(1,(now-(s.boostStart||0))/total));m.rotation.z*=.82;m.rotation.x=-Math.sin(Math.PI*t)*.16;}
       else if(s.crashUntil&&now<s.crashUntil){const pulse=Math.sin(now*.045+Number(id.slice(1)));m.rotation.z=pulse*.10*power;m.rotation.x=Math.cos(now*.05)*.04*power;m.position.y=.05+Math.abs(pulse)*.15*power;}else{m.rotation.z*=.78;m.rotation.x*=.78;}
     });
-    const me=world.players[myId];if(!me)return;const p=wp(me.x,me.y),d=new THREE.Vector3(Math.cos(me.a),0,Math.sin(me.a)),f=Math.min(1,Math.abs(me.v)/520),air=boostHeight(me,now),tc=new THREE.Vector3(p.x-d.x*(10+f*3),5.3+f+air*.28,p.z-d.z*(10+f*3));
-    if(!air&&me.crashUntil&&now<me.crashUntil){const power=Math.max(.25,Math.min(1,me.crashPower||.5)),shake=.22+.62*power;tc.x+=Math.sin(now*.095)*shake;tc.y+=Math.sin(now*.12)*shake*.55;tc.z+=Math.cos(now*.105)*shake;}
-    cam.position.lerp(tc,.09);look.lerp(new THREE.Vector3(p.x+d.x*5,1.15+air*.34,p.z+d.z*5),.14);cam.lookAt(look);cam.fov=65+f*8+(air>0?4:0);cam.updateProjectionMatrix();if(skyGroup)skyGroup.position.set(cam.position.x,0,cam.position.z);resize();r.render(sc,cam);
+    // Elevated, farther-back chase camera with its focus far along the road.
+    // The larger forward view helps drivers spot slow traffic before overtaking it.
+    const me=world.players[myId];if(!me)return;
+    const p=wp(me.x,me.y),d=new THREE.Vector3(Math.cos(me.a),0,Math.sin(me.a));
+    const f=Math.min(1,Math.abs(me.v)/520),air=boostHeight(me,now);
+    const behind=17.5+f*3.5,lookAhead=17+f*10;
+    const tc=new THREE.Vector3(p.x-d.x*behind,9.3+f*.8+air*.24,p.z-d.z*behind);
+    if(!air&&me.crashUntil&&now<me.crashUntil){
+      const power=Math.max(.25,Math.min(1,me.crashPower||.5)),shake=(.22+.62*power)*.55;
+      tc.x+=Math.sin(now*.095)*shake;tc.y+=Math.sin(now*.12)*shake*.55;tc.z+=Math.cos(now*.105)*shake;
+    }
+    cam.position.lerp(tc,.12);
+    look.lerp(new THREE.Vector3(p.x+d.x*lookAhead,.78+air*.27,p.z+d.z*lookAhead),.15);
+    cam.lookAt(look);
+    cam.fov=(cam.aspect<1.05?76:71)+f*5+(air>0?3:0);
+    cam.updateProjectionMatrix();
+    if(skyGroup)skyGroup.position.set(cam.position.x,0,cam.position.z);
+    resize();r.render(sc,cam);
   }
 
   const colorFor=id=>COLORS[id]||'#fff';window.Midnight3D={init,update,track:T,scale:S,colorFor};
