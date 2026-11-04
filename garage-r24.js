@@ -1,6 +1,7 @@
 (() => {
   const models = [
     {id:'vortex-r',name:'Vortex R',type:'Track supercar',paint:'#e32436',accent:'#ffd7d9',roof:1.43,roofX:-.42,hood:.84,tail:1.13,width:2.26,wheel:.48,spoiler:2,stripe:1,lightbar:0},
+    {id:'bmw-m4',name:'BMW M4 Competition',type:'Twin-turbo performance coupe',paint:'#204f8c',accent:'#d6e8ff',roof:1.61,roofX:-.50,hood:1.02,tail:1.06,width:2.19,wheel:.49,spoiler:0,stripe:0,lightbar:0},
     {id:'neon-x',name:'Neon X',type:'Electric supercar',paint:'#10a8d5',accent:'#b1f0ff',roof:1.38,roofX:-.12,hood:.81,tail:.89,width:2.17,wheel:.43,spoiler:0,stripe:0,lightbar:1},
     {id:'shadow-rs',name:'Shadow RS',type:'Stealth sports coupe',paint:'#68728c',accent:'#e3eaff',roof:1.47,roofX:-.48,hood:.92,tail:.99,width:2.14,wheel:.47,spoiler:1,stripe:0,lightbar:1},
     {id:'apex-z',name:'Apex Z',type:'Exotic hypercar',paint:'#35c47d',accent:'#e4ffe9',roof:1.28,roofX:-.13,hood:.78,tail:.95,width:2.29,wheel:.44,spoiler:1,stripe:1,lightbar:0},
@@ -9,11 +10,11 @@
   const byId = Object.fromEntries(models.map(m => [m.id,m]));
   const safe = id => byId[id] ? id : models[0].id;
   let selected = models[0].id;
-  try { selected = safe(localStorage.getItem('mcr-car-r25') || localStorage.getItem('mcr-car-r24')); } catch (_) {}
+  try { selected = safe(localStorage.getItem('mcr-car-r26') || localStorage.getItem('mcr-car-r25') || localStorage.getItem('mcr-car-r24')); } catch (_) {}
   const get = id => byId[safe(id)];
   const label = id => get(id).name;
   const selectedCar = () => selected;
-  window.MidnightGarage = {build:'realistic-r25',models,get,label,selectedCar};
+  window.MidnightGarage = {build:'bmw-r26',models,get,label,selectedCar};
 
   const panel = document.querySelector('#home .modeTabs');
   if (!panel) return;
@@ -59,7 +60,7 @@
   const section = document.createElement('section');
   section.className = 'sportsGarage';
   section.setAttribute('aria-label','Choose your sports car');
-  section.innerHTML = '<div class="garageHeading"><div><strong>CHOOSE YOUR SPORTS CAR</strong><small>5 models · equal performance in online races</small></div><span class="garageChoice" id="garageChoice"></span></div>' +
+  section.innerHTML = '<div class="garageHeading"><div><strong>CHOOSE YOUR SPORTS CAR</strong><small>6 models · equal performance in online races</small></div><span class="garageChoice" id="garageChoice"></span></div>' +
     '<div class="garageCards" role="group" aria-label="Available cars">' +
     models.map(m => '<button type="button" class="garageCard" data-car="' + m.id + '" aria-pressed="false">' +
       '<span class="garagePreview">' + preview(m) + '</span>' +
@@ -81,7 +82,7 @@
     const btn = e.target.closest('[data-car]');
     if (!btn) return;
     selected = safe(btn.dataset.car);
-    try { localStorage.setItem('mcr-car-r25',selected); } catch (_) {}
+    try { localStorage.setItem('mcr-car-r26',selected); } catch (_) {}
     paintSelection();
   });
   paintSelection();
