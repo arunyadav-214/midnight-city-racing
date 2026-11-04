@@ -1,0 +1,20 @@
+/* Sports car garage r24: lightweight previews, phone-friendly picker */
+.sportsGarage{margin:14px 0 16px;padding:13px;border-radius:16px;background:linear-gradient(145deg,rgba(17,29,45,.98),rgba(8,14,24,.98));border:1px solid #34475e}
+.garageHeading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.garageHeading strong{display:block;color:#eaf3fc;font-size:12px;font-weight:900;letter-spacing:.09em}
+.garageHeading small{display:block;color:#9caec3;font-size:10px;margin-top:3px}
+.garageChoice{white-space:nowrap;max-width:115px;overflow:hidden;text-overflow:ellipsis;border-radius:999px;padding:5px 8px;background:rgba(255,210,63,.12);color:#ffe38b;border:1px solid rgba(255,210,63,.35);font-weight:800;font-size:10px}
+.garageCards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.garageCard{display:flex;flex-direction:column;align-items:stretch;gap:2px;min-width:0;min-height:112px;padding:7px;border-radius:12px;background:#0b1625;border:1px solid #324256;color:#e7eef9;text-align:left;cursor:pointer;transition:border-color .15s,background .15s,transform .15s;touch-action:manipulation}
+.garageCard:hover{border-color:#74b6cf;background:#122438;transform:translateY(-1px)}
+.garageCard.selected{border-color:#ffdf76;background:linear-gradient(145deg,#162839,#13202c);box-shadow:0 0 0 1px rgba(255,210,63,.25),inset 0 0 15px rgba(255,210,63,.04)}
+.garageCard:focus-visible{outline:3px solid #a7e0ff;outline-offset:2px}
+.garagePreview{height:63px;display:flex;align-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 100%,#2a4054,#0b1422 74%);border-radius:8px}
+.garagePreview svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+.garageName{font-size:12px;line-height:1.15;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.garageType{font-size:9px;color:#90a9be;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.garageSelected{margin-top:auto;color:#b5c5d5;letter-spacing:.05em;font-size:9px;font-weight:900}
+.garageCard.selected .garageSelected{color:#ffdf76}
+.driverCar{font-size:10px;color:#9bdced;font-weight:800;letter-spacing:.015em}
+@media(max-width:760px){.sportsGarage{margin-top:10px;padding:9px}.garageCards{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.garageCard{min-height:105px;padding:6px}.garagePreview{height:56px}.garageName{font-size:11px}.garageHeading strong{font-size:11px}.garageChoice{font-size:9px}}
+@media(max-width:400px){.garageCards{grid-template-columns:repeat(2,minmax(0,1fr))}.garagePreview{height:47px}.garageCard{min-height:98px}.garageHeading{align-items:flex-start;flex-direction:column}.garageChoice{max-width:none}}
