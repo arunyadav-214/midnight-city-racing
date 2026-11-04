@@ -11,7 +11,7 @@
     marks:[],laneYs:[245,285,325,365,405],startX:115,finishX:900,roadMinY:205,roadMaxY:445
   };
   const COLORS={p1:'#ffd23f',p2:'#45d6ff',p3:'#ff5f7e',p4:'#70ff9c',p5:'#c58cff',p6:'#ff9b45'};
-  let r,sc,cam,cars={},look,ready=false,canvas,lastCrash={},effects=[],walkers=[],skyGroup,lastFrame=performance.now();
+  let r,sc,cam,cars={},look,ready=false,canvas,lastCrash={},effects=[],walkers=[],trafficMeshes=new Map(),skyGroup,lastFrame=performance.now();
   const wp=(x,y)=>new THREE.Vector3((x-500)*S,0,(y-325)*S);
   const mat=(c,rough=.8,metal=.05,em=0)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:metal,emissive:em,emissiveIntensity:em?1.5:0});
 
@@ -83,13 +83,13 @@
     T.buildings.forEach(building);
     const finish=T.finishX||900;let idx=T.buildings.length;
     for(let x=1150;x<finish;x+=1550){
-      building({x:x-130,y:28,w:175,h:135},idx++);building({x:x+255,y:42,w:125,h:118},idx++);
-      building({x:x+20,y:488,w:155,h:118},idx++);building({x:x+410,y:482,w:150,h:142},idx++);
+      building({x:x-130,y:-1,w:175,h:135},idx++);building({x:x+255,y:11,w:125,h:118},idx++);
+      building({x:x+20,y:530,w:155,h:118},idx++);building({x:x+410,y:532,w:150,h:142},idx++);
     }
 
     const poleMat=mat(0x575d63,.42,.46),bulbMat=mat(0xf6efcf,.28,.05,0xffdca0);
     for(let x=260,i=0;x<finish;x+=1050,i++)[-1,1].forEach(side=>{
-      const y=side<0?186:464,p=wp(x,y),pole=new THREE.Mesh(new THREE.CylinderGeometry(.055,.075,4.3,8),poleMat);
+      const y=side<0?146:505,p=wp(x,y),pole=new THREE.Mesh(new THREE.CylinderGeometry(.055,.075,4.3,8),poleMat);
       pole.position.set(p.x,2.15,p.z);pole.castShadow=true;sc.add(pole);
       const arm=new THREE.Mesh(new THREE.BoxGeometry(.75,.06,.06),poleMat);arm.position.set(p.x+(side<0?.34:-.34),4.18,p.z);sc.add(arm);
       const b=new THREE.Mesh(new THREE.SphereGeometry(.13,9,7),bulbMat);b.position.set(p.x+(side<0?.68:-.68),4.08,p.z);sc.add(b);
@@ -97,9 +97,9 @@
     });
 
     for(let x=520,i=0;x<finish;x+=1450,i++){
-      tree(x,177,i);tree(x+620,473,i+1);
-      pedestrian(x+180,188,i%2?1:-1,i);pedestrian(x+760,462,i%2?-1:1,i+7);
-      if(i%2===0)pedestrian(x+1030,188,1,i+13);
+      tree(x,135,i);tree(x+620,517,i+1);
+      pedestrian(x+180,139,i%2?1:-1,i);pedestrian(x+760,511,i%2?-1:1,i+7);
+      if(i%2===0)pedestrian(x+1030,139,1,i+13);
     }
   }
 
@@ -405,6 +405,65 @@
     });
     Object.keys(cars).forEach(id=>{if(!players[id])cars[id].visible=false;});
   }
+  // Lightweight highway traffic models. Positions come ONLY from the host world.
+  function buildTrafficCar(t){
+    const kind=t.kind||'sedan',truck=kind==='truck',suv=kind==='suv';
+    const group=new THREE.Group(),paint=mat(t.color||'#a6b1be',.43,.32),
+      glass=mat(0x163044,.24,.38),dark=mat(0x121821,.83,.07),
+      tire=mat(0x080b10,.98),alloy=mat(0xbac5cb,.34,.65),
+      white=mat(0xbcecff,.39,.04,0x9ddcff),red=mat(0xff4a56,.32,.05,0xff132a);
+    const add=(geo,m,x,y,z)=>{
+      const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);
+      o.castShadow=false;o.receiveShadow=false;group.add(o);return o;
+    };
+    const length=truck?6.2:suv?4.35:3.95,width=truck?2.05:suv?1.88:1.78;
+    add(new THREE.BoxGeometry(length,.56,width),paint,0,.69,0);
+    if(truck){
+      add(new THREE.BoxGeometry(3.10,1.37,width*.93),paint,-1.03,1.42,0);
+      add(new THREE.BoxGeometry(1.24,1.06,width*.84),glass,2.00,1.30,0);
+      add(new THREE.BoxGeometry(.10,.76,width*.85),dark,1.20,1.32,0);
+    }else{
+      add(new THREE.BoxGeometry(suv?2.25:1.91,suv?.83:.65,width*.81),glass,-.24,suv?1.27:1.18,0);
+      add(new THREE.BoxGeometry(.25,.16,width*.90),dark,-length*.45,1.0,0);
+    }
+    [-1,1].forEach(side=>{
+      const z=side*(width*.52),wheelX=truck?[-2.16,1.89]:[-1.20,1.17];
+      wheelX.forEach(x=>{
+        const w=add(new THREE.CylinderGeometry(.36,.36,.27,12),tire,x,.47,z);w.rotation.x=Math.PI/2;
+        const hub=add(new THREE.CylinderGeometry(.20,.20,.29,12),alloy,x,.47,side*(width*.55));
+        hub.rotation.x=Math.PI/2;
+      });
+      add(new THREE.BoxGeometry(.075,.16,.29),white,length*.505,.76,side*width*.32);
+      add(new THREE.BoxGeometry(.078,.14,.30),red,-length*.505,.76,side*width*.32);
+    });
+    if(kind==='taxi'){
+      add(new THREE.BoxGeometry(.85,.20,.55),mat(0xf2c74f,.6,.05),-.15,1.64,0);
+    }
+    group.userData.kind=kind;
+    return group;
+  }
+  function syncTraffic(traffic){
+    const active=new Set();
+    (traffic||[]).forEach(t=>{
+      active.add(t.id);
+      let m=trafficMeshes.get(t.id);
+      if(m&&m.userData.kind!==t.kind){sc.remove(m);trafficMeshes.delete(t.id);m=null;}
+      if(!m){m=buildTrafficCar(t);sc.add(m);trafficMeshes.set(t.id,m);}
+      const goal=wp(t.x,t.y);goal.y=.055;
+      if(m.position.distanceToSquared(goal)>4900)m.position.copy(goal);
+      else m.position.lerp(goal,.29);
+      m.rotation.set(0,-(t.a||0),0);
+      m.visible=true;
+    });
+    for(const [id,m] of trafficMeshes){
+      if(!active.has(id)){
+        sc.remove(m);
+        m.traverse(o=>{o.geometry?.dispose?.();if(o.material)o.material.dispose?.();});
+        trafficMeshes.delete(id);
+      }
+    }
+  }
+
   function resize(){if(!r)return;const b=canvas.getBoundingClientRect(),w=Math.max(320,b.width|0),h=Math.max(240,b.height|0);r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
 
   function init(c){
@@ -426,7 +485,7 @@
   }
 
   function update(world,myId){
-    if(!ready||!world?.players)return;ensureCars(world.players);const frameNow=performance.now(),dt=Math.min(.04,(frameNow-lastFrame)/1000);lastFrame=frameNow;updateEffects(dt);updateWalkers(dt,frameNow);const now=Date.now();
+    if(!ready||!world?.players)return;ensureCars(world.players);syncTraffic(world.traffic||[]);const frameNow=performance.now(),dt=Math.min(.04,(frameNow-lastFrame)/1000);lastFrame=frameNow;updateEffects(dt);updateWalkers(dt,frameNow);const now=Date.now();
     Object.entries(world.players).forEach(([id,s])=>{
       const m=cars[id],p=wp(s.x,s.y),power=Math.max(.25,Math.min(1,s.crashPower||.5)),air=boostHeight(s,now);m.position.set(p.x,.05+air,p.z);m.rotation.y=-s.a;
       m.userData.flames?.forEach((f,i)=>{f.visible=air>.15;if(f.visible)f.scale.y=.9+Math.sin(now*.04+i)*.15;});
