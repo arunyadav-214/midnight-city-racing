@@ -304,7 +304,49 @@
       box(.53,.075,wingW,carbon,-2.08,1.48,0);
       box(.18,.024,wingW*.87,accents,-2.04,1.528,0);
     }
-    if(spec.id==='titan-s'){
+    if(spec.id==='bmw-m4'){
+      // BMW M4 Competition-inspired twin vertical kidney grilles.
+      // Flat local XY grille panels face the car's forward (+X) direction.
+      const kidney=new THREE.Shape();
+      kidney.moveTo(0,.235);
+      kidney.bezierCurveTo(-.115,.225,-.157,.13,-.151,.035);
+      kidney.lineTo(-.129,-.179);
+      kidney.quadraticCurveTo(0,-.281,.129,-.179);
+      kidney.lineTo(.151,.035);
+      kidney.bezierCurveTo(.157,.13,.115,.225,0,.235);
+      const points=kidney.getPoints(30);
+      const grilleFace=new THREE.ShapeGeometry(kidney,20);
+      const kidneyEdge=new THREE.LineBasicMaterial({color:0xc4d1df,transparent:true,opacity:.92});
+      [-1,1].forEach(side=>{
+        const z=side*.175;
+        const face=add(grilleFace.clone(),grille,2.513,.824,z);
+        face.rotation.y=Math.PI/2;
+        face.castShadow=false;
+        const rimGeometry=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(p.x,p.y,0)));
+        const rimLine=new THREE.LineLoop(rimGeometry,kidneyEdge);
+        rimLine.position.set(2.524,.824,z);
+        rimLine.rotation.y=Math.PI/2;
+        g.add(rimLine);
+        for(let k=-1;k<=1;k++){
+          box(.014,.30,.013,darkAlloy,2.537,.81,z+k*.058);
+        }
+        // Two crisp light signatures near the outer corners of the grille.
+        box(.050,.035,.20,headlight,2.505,.86,side*(w*.68));
+        box(.050,.030,.11,headlight,2.502,.818,side*(w*.78));
+        // Shadowline side vent behind front wheel.
+        box(.23,.155,.032,carbon,.67,.79,side*(w*1.025));
+        box(.035,.12,.034,alloys,.79,.79,side*(w*1.047));
+        // Contoured hood creases.
+        const seam=new THREE.LineBasicMaterial({color:0x9cb6dc,transparent:true,opacity:.35});
+        line([[.91,1.03,side*.32],[1.59,1.003,side*.50],[2.05,.85,side*.58]],seam);
+        // Competition quad exhaust: two existing inner tips plus two outer tips.
+        const tip=add(new THREE.CylinderGeometry(.115,.115,.16,14),alloys,-2.48,.58,side*.82);
+        tip.rotation.z=Math.PI/2;
+      });
+      // Subtle boot spoiler / diffuser, without a track wing.
+      box(.23,.065,1.55,paint,-2.31,1.085,0);
+      box(.12,.062,1.51,carbon,-2.39,.48,0);
+    }else if(spec.id==='titan-s'){
       // Sculpted muscle-car hood intake.
       box(.52,.075,.67,carbon,1.08,hood+.18,0);
       box(.065,.09,.50,grille,1.34,hood+.19,0);
