@@ -132,13 +132,97 @@
     s.scale.set(7.4,2,1);s.position.set(0,3.35,0);s.renderOrder=20;return s;
   }
 
-  function car(color,name){
-    const g=new THREE.Group(),body=mat(color,.26,.62),dark=mat(0x071018,.25,.55),glass=new THREE.MeshStandardMaterial({color:0x0b2031,metalness:.45,roughness:.12,transparent:true,opacity:.86}),tire=mat(0x050607,.95),rim=mat(0xb9c1ca,.2,.9);
-    const add=(geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;g.add(o);return o};
-    add(new THREE.BoxGeometry(4.3,.65,1.9),body,0,.72,0);add(new THREE.BoxGeometry(1.55,.34,1.82),body,1.25,1.05,0);add(new THREE.BoxGeometry(1.7,.82,1.55),glass,-.35,1.31,0);add(new THREE.BoxGeometry(.95,.3,1.8),body,-1.55,1,0);add(new THREE.BoxGeometry(.22,.16,2),dark,2.22,.47,0);add(new THREE.BoxGeometry(.22,.12,2.1),dark,-2.1,1.45,0);
-    [-1.35,1.35].forEach(x=>[-1.04,1.04].forEach(z=>{const w=add(new THREE.CylinderGeometry(.44,.44,.36,18),tire,x,.5,z);w.rotation.x=Math.PI/2;const rr=add(new THREE.CylinderGeometry(.23,.23,.38,16),rim,x,.5,z*1.015);rr.rotation.x=Math.PI/2;}));
-    const hm=mat(0xffffff,.35,.1,0xaee3ff),tm=mat(0xff3344,.4,.05,0xff0018);[-.62,.62].forEach(z=>{add(new THREE.BoxGeometry(.08,.22,.38),hm,2.18,.82,z);add(new THREE.BoxGeometry(.08,.22,.42),tm,-2.18,.82,z)});
-    g.add(nameTag(name,color));return g;
+  function car(color,name,modelId='falcon-gt'){
+    const spec=window.MidnightGarage?.get?.(modelId)||{
+      id:'falcon-gt',paint:color,accent:'#fff1aa',
+      roof:1.62,roofX:-.35,hood:.93,tail:1.04,width:2.08,wheel:.46,spoiler:0,stripe:1,lightbar:0
+    };
+    const g=new THREE.Group();
+    const body=mat(spec.paint||color,.28,.54),trim=mat(0x101824,.57,.27),
+      glass=mat(0x102f43,.16,.56),tire=mat(0x080b10,.98,.01),
+      rim=mat(0xc9d7e0,.20,.85),accent=mat(spec.accent||0xffffff,.33,.30),
+      lamp=mat(0xd9f8ff,.24,.06,0xa4e9ff),red=mat(0xff365a,.27,.08,0xff1b2f);
+    const add=(geo,m,x,y,z)=>{
+      const o=new THREE.Mesh(geo,m);
+      o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;g.add(o);return o;
+    };
+    const half=spec.width*.5,rs=(spec.roofX||-.3)-.91,re=(spec.roofX||-.3)+.70;
+    // Beveled wedge silhouette instead of the old rectangular car body.
+    const outline=new THREE.Shape();
+    outline.moveTo(-2.36,.47);outline.lineTo(-2.36,.86);
+    outline.lineTo(-1.94,spec.tail);outline.lineTo(rs-.24,1.12);
+    outline.lineTo(rs,spec.roof);outline.lineTo(re,spec.roof-.035);
+    outline.lineTo(re+.53,1.10);outline.lineTo(1.85,spec.hood);
+    outline.lineTo(2.41,.73);outline.lineTo(2.41,.46);outline.closePath();
+    const chassis=new THREE.ExtrudeGeometry(outline,{
+      depth:spec.width*.84,bevelEnabled:true,bevelThickness:.055,
+      bevelSize:.065,bevelSegments:1,steps:1,curveSegments:1
+    });
+    chassis.translate(0,0,-spec.width*.42);
+    add(chassis,body,0,0,0);
+    // Windshield and wraparound side glass have a distinct roof profile per model.
+    const windowShape=new THREE.Shape();
+    windowShape.moveTo(rs+.17,1.17);
+    windowShape.lineTo(rs+.22,spec.roof-.10);
+    windowShape.lineTo(re-.12,spec.roof-.12);
+    windowShape.lineTo(re+.33,1.17);
+    windowShape.closePath();
+    const windowGeo=new THREE.ExtrudeGeometry(windowShape,{
+      depth:spec.width*.76,bevelEnabled:false,steps:1
+    });
+    windowGeo.translate(0,0,-spec.width*.38);
+    add(windowGeo,glass,0,0,0);
+    add(new THREE.BoxGeometry(4.40,.17,spec.width*.85),trim,0,.51,0);
+    // Side skirts and aerodynamic rear diffuser.
+    [-1,1].forEach(side=>{
+      add(new THREE.BoxGeometry(2.55,.17,.11),trim,-.03,.52,side*(half-.04));
+      add(new THREE.BoxGeometry(.66,.20,.055),trim,-.70,.83,side*(half+.015));
+    });
+    add(new THREE.BoxGeometry(.20,.24,spec.width*.92),trim,2.38,.49,0);
+    add(new THREE.BoxGeometry(.30,.30,spec.width*.91),trim,-2.35,.51,0);
+    // Sport tires, metallic alloy rims and brake hubs.
+    [-1.44,1.44].forEach(x=>[-1,1].forEach(side=>{
+      const z=side*(half+.03),rad=spec.wheel||.46;
+      const wheel=add(new THREE.CylinderGeometry(rad,rad,.35,20),tire,x,.48,z);
+      wheel.rotation.x=Math.PI/2;
+      const alloy=add(new THREE.CylinderGeometry(rad*.66,rad*.66,.37,12),rim,x,.48,side*(half+.10));
+      alloy.rotation.x=Math.PI/2;
+      const hub=add(new THREE.CylinderGeometry(rad*.23,rad*.23,.39,12),trim,x,.48,side*(half+.11));
+      hub.rotation.x=Math.PI/2;
+    }));
+    [-1,1].forEach(side=>{
+      const z=side*spec.width*.30;
+      add(new THREE.BoxGeometry(.10,.10,.50),lamp,2.39,.78,z);
+      add(new THREE.BoxGeometry(.10,.13,.52),red,-2.38,.84,z);
+      add(new THREE.BoxGeometry(.20,.10,.36),trim,1.68,.78,side*(half-.1));
+      add(new THREE.BoxGeometry(.17,.07,.39),trim,-2.25,.65,side*(half-.1));
+    });
+    if(spec.lightbar){
+      add(new THREE.BoxGeometry(.075,.055,spec.width*.79),lamp,2.43,.85,0);
+      add(new THREE.BoxGeometry(.075,.08,spec.width*.80),red,-2.40,.84,0);
+    }
+    if(spec.stripe){
+      add(new THREE.BoxGeometry(1.10,.036,.11),accent,1.25,spec.hood+.043,0);
+      add(new THREE.BoxGeometry(.82,.036,.10),accent,-1.85,spec.tail+.044,0);
+    }
+    if(spec.spoiler){
+      [-1,1].forEach(side=>add(new THREE.BoxGeometry(.10,.49,.10),trim,-2.06,1.24,side*half*.63));
+      const wingWidth=spec.width+(spec.spoiler===2?.36:.08);
+      add(new THREE.BoxGeometry(.53,.115,wingWidth),trim,-2.05,1.50,0);
+      add(new THREE.BoxGeometry(.33,.035,wingWidth*.93),accent,-2.05,1.58,0);
+    }
+    // Exhaust tips, with blue flames only while a car uses its air boost.
+    const flames=[];
+    [-1,1].forEach(side=>{
+      add(new THREE.CylinderGeometry(.13,.13,.14,10),rim,-2.43,.57,side*.57).rotation.z=Math.PI/2;
+      const flame=add(new THREE.ConeGeometry(.16,.72,9),
+        new THREE.MeshBasicMaterial({color:0x2fd4ff,transparent:true,opacity:.84,depthWrite:false}),
+        -2.78,.59,side*.57);
+      flame.rotation.z=Math.PI/2;flame.visible=false;flames.push(flame);
+    });
+    g.userData.model=spec.id;g.userData.driverName=name;g.userData.flames=flames;
+    g.add(nameTag(name,spec.paint||color));
+    return g;
   }
 
   function spawnImpact(position,power=.5){
@@ -155,7 +239,25 @@
   }
 
   function ensureCars(players){
-    Object.entries(players).forEach(([id,p])=>{if(!cars[id]){cars[id]=car(COLORS[id]||'#fff',p.name);sc.add(cars[id]);lastCrash[id]=p.crashSeq||0;}cars[id].visible=true;});
+    Object.entries(players).forEach(([id,p])=>{
+      const model=window.MidnightGarage?.get?.(p.car)?.id||'falcon-gt';
+      if(cars[id]&&(cars[id].userData.model!==model||cars[id].userData.driverName!==p.name)){
+        const old=cars[id];sc.remove(old);
+        old.traverse(o=>{
+          o.geometry?.dispose?.();
+          if(o.material){
+            const mats=Array.isArray(o.material)?o.material:[o.material];
+            mats.forEach(m=>{m.map?.dispose?.();m.dispose?.();});
+          }
+        });
+        delete cars[id];
+      }
+      if(!cars[id]){
+        cars[id]=car(COLORS[id]||'#fff',p.name,model);
+        sc.add(cars[id]);lastCrash[id]=p.crashSeq||0;
+      }
+      cars[id].visible=true;
+    });
     Object.keys(cars).forEach(id=>{if(!players[id])cars[id].visible=false;});
   }
   function resize(){if(!r)return;const b=canvas.getBoundingClientRect(),w=Math.max(320,b.width|0),h=Math.max(240,b.height|0);r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
@@ -182,6 +284,7 @@
     if(!ready||!world?.players)return;ensureCars(world.players);const frameNow=performance.now(),dt=Math.min(.04,(frameNow-lastFrame)/1000);lastFrame=frameNow;updateEffects(dt);updateWalkers(dt,frameNow);const now=Date.now();
     Object.entries(world.players).forEach(([id,s])=>{
       const m=cars[id],p=wp(s.x,s.y),power=Math.max(.25,Math.min(1,s.crashPower||.5)),air=boostHeight(s,now);m.position.set(p.x,.05+air,p.z);m.rotation.y=-s.a;
+      m.userData.flames?.forEach((f,i)=>{f.visible=air>.15;if(f.visible)f.scale.y=.9+Math.sin(now*.04+i)*.15;});
       if((s.crashSeq||0)!==(lastCrash[id]||0)){lastCrash[id]=s.crashSeq||0;if(s.crashSeq)spawnImpact(m.position.clone(),power);}
       if(air>0){const total=Math.max(1,(s.boostUntil||0)-(s.boostStart||0)),t=Math.max(0,Math.min(1,(now-(s.boostStart||0))/total));m.rotation.z*=.82;m.rotation.x=-Math.sin(Math.PI*t)*.16;}
       else if(s.crashUntil&&now<s.crashUntil){const pulse=Math.sin(now*.045+Number(id.slice(1)));m.rotation.z=pulse*.10*power;m.rotation.x=Math.cos(now*.05)*.04*power;m.position.y=.05+Math.abs(pulse)*.15*power;}else{m.rotation.z*=.78;m.rotation.x*=.78;}
