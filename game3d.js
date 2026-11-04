@@ -17,7 +17,7 @@
   function broadcast(msg){if(!isHost||soloMode)return;conns.forEach(c=>{if(c.open)c.send(msg)});}
   function send(msg){if(conn?.open)conn.send(msg);}
   function cleanup(){clearInterval(hostLoop);hostLoop=null;cancelAnimationFrame(raf);raf=null;try{conn?.close()}catch{}conns.forEach(c=>{try{c.close()}catch{}});try{peer?.destroy()}catch{}peer=null;conn=null;conns=new Map();guestInputs=new Map();world=null;ready=false;finished=false;soloMode=false;lastCrashSeq=0;lastGasPress=0;input={up:false,down:false,left:false,right:false,boost:false};MidnightSound.stop();}
-  function home(){cleanup();isHost=false;myName='';room='';myId='';status('Ready · realistic garage r25');error();show('home');}
+  function home(){cleanup();isHost=false;myName='';room='';myId='';status('Ready · BMW garage r26');error();show('home');}
   function activateMode(mode){['host','join','bot'].forEach(m=>{$('#'+m+'Tab')?.classList.toggle('active',m===mode);$('#'+m+'Form')?.classList.toggle('active',m===mode)});error();}
   $('#hostTab').onclick=()=>activateMode('host');$('#joinTab').onclick=()=>activateMode('join');$('#botTab').onclick=()=>activateMode('bot');['hostCode','joinCode'].forEach(id=>$('#'+id).oninput=e=>e.target.value=code(e.target.value));
   $('#hostForm').onsubmit=e=>{e.preventDefault();const n=$('#hostName').value.trim();if(n)host(n,code($('#hostCode').value)||rand())};
@@ -89,5 +89,5 @@
   addEventListener('keydown',e=>{const k=keys[e.key];if(!k||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;e.preventDefault();MidnightSound.init();if(k==='up'&&!e.repeat&&!input.up)gasTap();input[k]=true;inputSend()});
   addEventListener('keyup',e=>{const k=keys[e.key];if(!k)return;e.preventDefault();input[k]=false;inputSend()});
   document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key,on=e=>{e.preventDefault();MidnightSound.init();if(k==='up'&&!input.up)gasTap();input[k]=true;inputSend()},off=e=>{e.preventDefault();input[k]=false;inputSend()};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
-  status('Ready · realistic garage r25');
+  status('Ready · BMW garage r26');
 })();
